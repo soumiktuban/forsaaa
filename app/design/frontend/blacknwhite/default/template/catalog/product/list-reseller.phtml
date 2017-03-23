@@ -1,0 +1,909 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category    design
+ * @package     base_default
+ * @copyright   Copyright (c) 2014 Magento Inc. (http://www.magentocommerce.com)
+ * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+?>
+<?php
+/**
+ * Product list template
+ *
+ * @see Mage_Catalog_Block_Product_List
+ */
+?>
+<?php
+//if (Mage::getSingleton('customer/session')->getCustomer()->getGroupId() == 4) {
+//    if (Mage::getSingleton('core/session')->getResellerId() == "") {
+//        Mage::app()->getFrontController()->getResponse()->setRedirect($this->getUrl('reseller/index/customerpage'));
+//    }
+//}
+$_productCollection = $this->getLoadedProductCollection();
+$_helper = $this->helper('catalog/output');
+$topProductSkus = 0;
+if ($currentCategory) {
+    $bigSku = $currentCategory->getTopProduct();
+    $topProductSkus = explode(",", $bigSku);
+}
+if (!$_productCollection->count()) :
+?>
+    <p class="col-md-12 col-sm-12 col-xs-12 noPadding noteMsg"><?php echo $this->__('There are no products matching the selection.') ?></p>
+<?php else: ?>
+    <div class="banner" id="categoryBanner">
+    <?php
+        $categoryFilter = (int) Mage::app()->getRequest()->getParam('categoryFilter');
+        if (!$categoryFilter) {
+            $categoryFilter = 2;
+        }
+        $_category  = Mage::getModel('catalog/category')->load($categoryFilter);
+    ?>
+        <?php //echo $this->getChildHtml('reseller_banner') ?>
+    </div>
+
+    <div class="productWrapper" id="productsFilter">
+        <div class="categoryToolBarHolder">
+            <div class="prdSortWrap">
+                <?php
+                    $prdSortBy = $this->__('Sort by');
+                    $sortby = Mage::app()->getRequest()->getParam('sortby');
+                    if ($sortby) {
+                        if ($sortby == "latest") {
+                            $prdSortBy = $this->__('Latest');
+                        } else if ($sortby == "stock") {
+                            $prdSortBy = $this->__('Stock');
+                        } else {
+                            $prdSortBy = $this->__('Name');
+                        }
+                    }
+                ?>
+                <span class="prdSortBy" onclick="productSortDropDown(this)"><?php echo $prdSortBy ?></span>
+                <ul>
+                    <li sortBy="name" onclick="productSortBy(this)"><?php echo $this->__('Name'); ?></li>
+                    <li sortBy="latest" onclick="productSortBy(this)"><?php echo $this->__('Latest'); ?></li>
+                    <li sortBy="stock" onclick="productSortBy(this)"><?php echo $this->__('Stock'); ?></li>
+                </ul>
+            </div>
+            <?php echo $this->getToolbarHtml() ?>
+        </div>
+        <?php
+        // List mode
+        if ($this->getMode() != 'grid'):
+            $_iterator = 0;
+            ?>
+            <ol class="products-list" id="products-list">
+                <?php foreach ($_productCollection as $_product): ?>
+                    <li class="item<?php if (++$_iterator == sizeof($_productCollection)): ?> last<?php endif; ?>">
+                        <a href="<?php echo $_product->getProductUrl(); ?>" title="<?php echo $this->stripTags($this->getImageLabel($_product, 'small_image'), null, true); ?>" class="product-image"><img src="<?php echo $this->helper('catalog/image')->init($_product, 'small_image')->resize('109', '149'); ?>" alt="<?php echo $this->stripTags($this->getImageLabel($_product, 'small_image'), null, true); ?>" /></a>
+                        <div class="product-shop">
+                            <div class="f-fix">
+                                <?php $_productNameStripped = $this->stripTags($_product->getName(), null, true); ?>
+                                <h2 class="product-name"><a href="<?php echo $_product->getProductUrl(); ?>" title="<?php echo $_productNameStripped; ?>"><?php echo $_helper->productAttribute($_product, $_product->getName(), 'name'); ?></a></h2>
+                                <?php
+                                if ($_product->getRatingSummary()) {
+                                    echo $this->getReviewsSummaryHtml($_product);
+                                }
+                                echo $this->getPriceHtml($_product, true);
+                                if ($_product->isSaleable()):
+                                    ?>
+                                <p><button type="button" title="<?php echo $this->__('Add to Cart'); ?>" class="button btn-cart" onclick="setLocation('<?php echo $this->getAddToCartUrl($_product); ?>')"><span><span><?php echo $this->__('Add to Cart'); ?></span></span></button></p>
+                                <?php else: ?>
+                                    <p class="availability out-of-stock"><span><?php echo $this->__('Out of stock'); ?></span></p>
+                                <?php endif; ?>
+                                <div class="desc std">
+                                    <?php echo $_helper->productAttribute($_product, $_product->getShortDescription(), 'short_description') ?>
+                                    <a href="" title="<?php echo $_productNameStripped ?>" class="link-learn"><?php echo $this->__('Learn More') ?></a>
+                                </div>
+                                <ul class="add-to-links">
+                                    <?php if ($this->helper('wishlist')->isAllow()) : ?>
+                                        <li><a href="<?php echo $this->helper('wishlist')->getAddUrl($_product) ?>" class="link-wishlist"><?php echo $this->__('Add to Wishlist') ?></a></li>
+                                        <?php
+                                    endif;
+                                    if ($_compareUrl = $this->getAddToCompareUrl($_product)):
+                                        ?>
+                                        <li><span class="separator">|</span> <a href="<?php echo $_compareUrl ?>" class="link-compare"><?php echo $this->__('Add to Compare') ?></a></li>
+                                    <?php endif; ?>
+                                </ul>
+                            </div>
+                        </div>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+            <script type="text/javascript">decorateList('products-list', 'none-recursive')</script>
+            <?php
+            else:
+            // Grid Mode
+            $_collectionSize = $_productCollection->count();
+            $_columnCount = $this->getColumnCount();
+            $i = 1;
+            $countProduct = 0;
+            //$big = 0;
+            ?>
+            <?php
+            foreach ($_productCollection as $_product):
+                $countProduct++; ?>
+                <div class="col-md-3 col-sm-4 item" prodId="<?php echo $_product->getId() ?>">
+                    <div class="row">
+                        <div class="checkBoxWrap">
+                            <input type="checkbox" onclick="showProduct(<?php echo $_product->getId() ?>,this)" name="itemSelect" class="chkBx" value="itemId">
+                        </div>
+                        <a href="javascript:void(0)" onclick="showProduct(<?php echo $_product->getId() ?>,this)" title="<?php echo $this->stripTags($this->getImageLabel($_product, 'small_image'), null, true) ?>" class="prdImgWrap">
+                            <img src="<?php echo $this->helper('catalog/image')->init($_product, 'small_image')->resize(148,139); ?>" alt="<?php echo $this->stripTags($this->getImageLabel($_product, 'small_image'), null, true) ?>" height="139" width="148" />
+                        </a>
+                        <div class="floatingIconHolder">
+                            <?php if ($_product->getGotsSymbol() == 1) : ?>
+                                <p class="floatingIconGot floatingIcons"></p>
+                            <?php endif; ?>
+                            <?php if ($_product->getEkoSymbol() == 1) : ?>
+                                <p class="floatingIconEko floatingIcons"></p>
+                            <?php endif; ?>
+                            <?php if ($_product->getReSymbol() == 1) : ?>
+                                <p class="floatingReSymbol floatingIcons"></p>
+                            <?php endif; ?>
+                            <?php if ($_product->getBioSymbol() == 1) : ?>
+                                <p class="floatingBioSymbol floatingIcons"></p>
+                            <?php endif; ?>
+                        </div>
+                        <div class="prdName"><?php echo $_product->getName() ?></div>
+                        <div class="prdPrice"><?php echo $this->getPriceHtml($_product, true) ?></div>
+                    </div>
+                    <?php if ($_product->getSpecialPrice() || $_product->getFinalPrice() < $_product->getPrice()) : ?>
+                        <p class="floatingIconSale"><?php echo $this->__('Sale');?></p>
+                    <?php endif ?>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+        <?php echo $this->getToolbarHtml() ?>
+    </div>
+
+<?php endif; ?>
+
+<div class="orderSuccessPop" style="display:none">
+    <h1><?php echo $this->__('Your order has been received.') ?></h1>
+    <h2 class="sub-title bodyHeadingSpan"><?php echo $this->__('Thank you for your purchase!') ?></h2>
+    <p><?php echo $this->__('You will receive an order confirmation email with details of your order and a link to track its progress.') ?></p>
+</div>
+
+<?php if(Mage::app()->getRequest()->getParam('filterparam')) : ?>
+    <script>
+        jQuery( document ).ready(function() {
+            var filterparam = "<?php echo Mage::app()->getRequest()->getParam('filterparam') ?>";
+            jQuery('#'+filterparam).trigger('click');
+            if (filterparam.indexOf("catId") >= 0) {
+                jQuery('#'+filterparam).parent('.radioBtnWrap').addClass('radioBtnActive');
+            }
+        });
+    </script>
+<?php endif; ?>
+<script>
+    var carId = "";
+    function showProduct(pid,el) {
+        showPopup();
+        jQuery('.checkBoxWrap').removeClass('chkBxActive');
+        jQuery.ajax({
+            url: "<?php echo $this->getUrl('reseller/index/view') ?>",
+            data: "productId="+pid,
+            success: function (data) {
+                closePopup();
+                if(parseInt(jQuery(window).scrollTop()) > 113){
+                    jQuery('.sidebarWrapper').css({position: 'static'});
+                    setTimeout(function(){jQuery('.sidebarWrapper').css({position: 'fixed', top: '0px'});}, 500);
+                }
+                if (jQuery(el).attr('type') == "checkbox") {
+                    jQuery(el).parent('.checkBoxWrap').addClass('chkBxActive');
+                } else {
+                    jQuery(el).siblings('.checkBoxWrap').addClass('chkBxActive');
+                }
+                jQuery("#reseller-view-item").html(data);
+            },
+            error:function(){
+                closePopup();
+                jQuery("#reseller-view-item").html(data);
+            }
+        });
+    }
+    function showFirstProduct(pid) {
+        jQuery.ajax({
+            url: "<?php echo $this->getUrl('reseller/index/view') ?>",
+            data: "productId="+pid,
+            success: function(data){
+                closePopup();
+                if (parseInt(jQuery(window).scrollTop()) > 113) {
+                    jQuery('.sidebarWrapper').css({position: 'static'});
+                    setTimeout(function(){jQuery('.sidebarWrapper').css({position: 'fixed', top: '0px'});}, 500);
+                }
+                jQuery('#productsFilter > .item').first().find('.checkBoxWrap').addClass('chkBxActive');
+                jQuery("#reseller-view-item").html(data);
+            },
+            error:function(){
+                jQuery("#reseller-view-item").html(data);
+                closePopup();
+            }
+        });
+    }
+    function addItemsToCart() {
+        var prodType = jQuery("#addToCartProduct").attr('prodType');
+        var possibleToAdd = false;
+        if (prodType !== "simple") {
+            jQuery( ".input-qty-prod" ).each(function( index ) {
+                if(jQuery(this).val() >= jQuery(this).attr('minqty')) {
+                    console.log(jQuery(this).val());
+                    possibleToAdd = true;
+                }
+            });
+        } else {
+            if(jQuery("#qty").val() != "0") {
+                possibleToAdd = true;
+            }
+        }
+        if (possibleToAdd == false) {
+            jQuery('.errorForMinQry').text("<?php echo $this->__('Sorry you requested less then minimum quantity') ?>");
+            return;
+        }
+        showPopup();
+        if (prodType !== "simple") {
+            jQuery( ".input-qty-prod" ).each(function( index ) {
+                if(jQuery(this).val() != "0") {
+                    var configProdId = jQuery(this).attr('configProdId');
+                    var attributeId = jQuery(this).attr('attributeId');
+                    var sizeCode = jQuery(this).attr('sizeCode');
+                    var simpleqty = jQuery(this).val();
+                    jQuery.ajax({
+                        url: "<?php echo $this->getUrl('reseller/order/add') ?>",
+                        data: "configProdId="+configProdId+"&attributeId="+attributeId+"&sizeCode="+sizeCode+"&simpleqty="+simpleqty,
+                        success: function(data){
+                            closePopup();
+                            jQuery(".innerQty").val(0);
+                            itemsCount();
+                            
+                        },
+                        error:function(er){
+                            closePopup();
+                            console.log(er);
+                        }
+                    });
+                }
+            });
+        } else {
+            var configProdId = jQuery("#qty").attr('configProdId');
+            var simpleqty = jQuery("#qty").val();
+            jQuery.ajax({
+                url: "<?php echo $this->getUrl('reseller/order/add') ?>",
+                data: "configProdId="+configProdId+"&simpleqty="+simpleqty,
+                success: function(data){
+                    closePopup();
+                    jQuery("#qty.innerQty").val(0);
+                    itemsCount();
+                   
+                },
+                error:function(er){
+                    closePopup();
+                    console.log(er);
+                }
+            });
+        }
+    }
+
+    var formValidate = function() {
+        jQuery('button.btn_cart').each(function() {
+            $(this).disabled = true;
+        });
+        var isSubmit = true;
+        $$('#my-orders-table input').each(function(item) {
+            if (item.value && parseInt(item.value, 10) > parseInt(item.readAttribute('maxqty'), 10)) {
+                var title = item.up('tr').childElements('td')[1].innerHTML;
+                alert(title + '<?php echo $this->__(": The maximum quantity allowed for purchase is ") ?>' + item.readAttribute('maxqty'));
+                isSubmit = false;
+            }
+        });
+        return isSubmit;
+    }
+
+    function addLessQty(elm, action){
+        var minQty = jQuery(elm).parent('.innerQtyAddLess').siblings('.innerQty').attr('minQty');
+        var qty = parseInt(jQuery(elm).parent('.innerQtyAddLess').siblings('.innerQty').val());
+        if(action === 'plus'){
+            if (minQty > qty) {
+                qty = minQty - 1;
+            }
+            jQuery(elm).parent('.innerQtyAddLess').siblings('.innerQty').val(qty + 1);
+        } else if(action === 'minus') {
+            if (qty == minQty) {
+                qty = 0;
+            }
+            if (qty > parseInt(minQty)) {
+                qty = qty - 1;
+            }
+            jQuery(elm).parent('.innerQtyAddLess').siblings('.innerQty').val(qty);
+        }
+        qtyCheck(elm);
+    }
+
+    function qtyCheck(el) {
+        var $qty = jQuery(el);
+        var minQty = $qty.attr('minQty');
+        var entervalue = $qty.val();
+        if (minQty > entervalue) {
+            $qty.val(minQty);
+            jQuery('.errorForMinQry').text("<?php echo $this->__('Sorry you requested less then minimum quantity.') ?>");
+        } else {
+            jQuery('.errorForMinQry').text("");
+        }
+    }
+
+    function qtyUpdate(e) {
+        var $buyEnable = false;
+        var $qty = jQuery(e);
+        var value = parseInt($qty.val());
+
+        if (0 >= value || isNaN($qty.val())) {
+            $qty.val(0);
+        } else {
+            jQuery.ajax({
+                type: "POST",
+                url: "<?php echo $this->getUrl('reseller/order/resellercartitemsadd') ?>",
+                data: 'childid=' + $qty.attr('childid') + '&qty=' + $qty.val(),
+                success: function(data) {
+                    itemsCount();
+                    if (data != "") {
+                        crtQty = 1;
+                    } else {
+                        crtQty = 0;
+                    }
+                }
+            });
+        }
+        jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('tr').each(function() {
+            if (parseInt(jQuery(this).find('.input-qty-prod').val()) > 0) {
+                $buyEnable = true;
+            }
+        });
+        if ($buyEnable) {
+            jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                jQuery(this).removeAttr('disabled');
+                jQuery(".btn-buy-reseller").removeAttr('disabled');
+            });
+        } else {
+            jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                jQuery(this).attr('disabled', 'disabled');
+                jQuery(".btn-buy-reseller").attr('disabled', 'disabled');
+            });
+        }
+    }
+    function makeCategoryFilter(el) {
+        var currentRadioName = jQuery(el).attr('name');
+
+        jQuery('input:radio[name=' + currentRadioName + ']').each(function(){
+            if(jQuery(this).is(':checked')){
+                jQuery(this).parent('.radioBtnWrap').addClass('radioBtnActive');
+            } else {
+                jQuery(this).parent('.radioBtnWrap').removeClass('radioBtnActive');
+            }
+        });
+        
+        showPopup();
+        
+        var boxes = jQuery('input[class=chkBx]:checked');
+        var boxesValueGroup = [];
+        var boxesValueColor = [];
+        jQuery(boxes).each(function() {
+            if (jQuery(this).attr('attrCode') == "product_group") {
+                boxesValueGroup.push(jQuery(this).attr('attrId'));
+            }
+            if (jQuery(this).attr('attrCode') == "color") {
+                boxesValueColor.push(jQuery(this).attr('attrId'));
+            }
+        });
+        var attributeAll = "";
+        var attributeFilterColor = boxesValueColor.join(",");
+        var attributeFilter = boxesValueGroup.join(",");
+        if (attributeFilterColor) {
+            attributeAll += '&attributeFilterColor=' + attributeFilterColor + '&attributeCodeColor=color';
+        }
+        if (attributeFilter) {
+            attributeAll += '&attributeFilter=' + attributeFilter + '&attributeCode=product_group';
+        }
+        
+        var searchText = jQuery('#searchReseller').val();
+        if (searchText !== "") {
+            var searchby = jQuery('#searchby').val();
+            attributeAll += '&searchFilter=' + searchText + '&searchby=' + searchby;
+        }
+
+        jQuery('#pgFilterList').html("");
+        jQuery.ajax({
+            type: "POST",
+            url: "<?php echo $this->getUrl('reseller/index/filter') ?>",
+            data: 'categoryFilter=' + jQuery(el).attr('catId') + attributeAll, //+ reqData,
+            success: function(response) {
+                closePopup();
+                var categoryBanner = jQuery('<div />').append(response).find('#categoryBanner').html();
+                jQuery('#categoryBanner').html(categoryBanner);
+                if (typeof jQuery('<div />').append(response).find('#productsFilter > .item').first().attr( "prodId" ) !== "undefined") {
+                    showFirstProduct(jQuery('<div />').append(response).find('#productsFilter > .item').first().attr( "prodId" ));
+                    var pagination = jQuery('<div />').append(response).find('.categoryToolBarHolder').html();
+                    if (pagination !== "undefined") {
+                        jQuery('.categoryToolBarHolder').html(pagination);
+                    } else {
+                        jQuery('.categoryToolBarHolder').html("");
+                    }
+                    jQuery( "#filterAttributes > .filterButton:first" ).nextAll().remove();
+                    var pgFilterList = jQuery('<div />').append(response).find('#pgFilterList').html();
+                    jQuery('#pgFilterList').html(pgFilterList);
+                    if (attributeFilter) {
+                        var attrFilter = attributeFilter.split(",");
+                        var attrName = "";
+                        attrFilter.forEach(function(af) {
+                            attrName = jQuery('#attr-'+af).parent('.checkBoxWrap').siblings('.listItemName').text();
+                            jQuery('#filterAttributes').append('<div class="filterButton" id="removeAttr-'+af+'">'+attrName+' <span class="removeFilter" removeAttribute="'+af+'">X</span></div>');
+                            jQuery('#attr-'+af).prop('checked', true);
+                        });
+                    }
+                    var productsFilter = jQuery('<div />').append(response).find('#productsFilter').html();
+                    jQuery('#productsFilter').html(productsFilter);
+                } else {
+                    jQuery('#productsFilter').html("<?php echo $this->__('There are no products matching the selection') ?>");
+                }
+                if (typeof jQuery('<div />').append(response).find('#categoryBanner') !== "undefined") {
+                    jQuery('.carousel').carousel({
+                        interval: 3000
+                    });
+                }
+            }
+        });
+    }
+
+    function selectAllGroup(el) {
+        if (jQuery(el).is(':checked')) {
+            jQuery(el).parent('.checkBoxWrap').addClass('chkBxActive');
+            jQuery('.inStockGroup').addClass('chkBxActive');
+            var attrName = jQuery(el).parent('.checkBoxWrap').siblings('.listItemName').text();
+            if(jQuery("#" + "removeAttr-" + jQuery(el).attr('attrId')).length == 0) {
+                jQuery('#filterAttributes').append('<div class="filterButton" id="removeAttr-'+jQuery(el).attr('attrId')+'">'+attrName+' <span class="removeFilter" removeAttribute="'+jQuery(el).attr('attrId')+'">X</span></div>');
+            }
+            jQuery('.inStockGroup').children('.chkBx').prop('checked', true);
+
+        } else {
+            jQuery(el).parent('.checkBoxWrap').removeClass('chkBxActive');
+            jQuery('.inStockGroup').removeClass('chkBxActive');
+            jQuery('#removeAttr-'+jQuery(el).attr('attrId')).remove();
+            jQuery('.inStockGroup').children('.chkBx').prop('checked', false);
+        }
+
+        var catId = jQuery('.radioBtnActive').children( ".radioBtn" ).attr('catId');
+        var reqData = '';
+        if(catId != undefined) {
+            reqData = 'categoryFilter=' + catId;
+        }
+
+        var boxes = jQuery('input[class=chkBx]:checked');
+        var boxesValueGroup = [];
+        var boxesValueColor = [];
+        jQuery(boxes).each(function() {
+            if (jQuery(this).attr('attrCode') == "product_group") {
+                boxesValueGroup.push(jQuery(this).attr('attrId'));
+            }
+            if (jQuery(this).attr('attrCode') == "color") {
+                boxesValueColor.push(jQuery(this).attr('attrId'));
+            }
+        });
+        var attributeAll = "";
+        var attributeFilterColor = boxesValueColor.join(",");
+        var attributeFilter = boxesValueGroup.join(",");
+//        console.log(attributeFilterColor);
+//        console.log(attributeFilter);
+        if (attributeFilterColor) {
+            attributeAll += '&attributeFilterColor=' + attributeFilterColor + '&attributeCodeColor=color';
+        }
+        if (attributeFilter) {
+            attributeAll += '&attributeFilter=' + attributeFilter + '&attributeCode=product_group';
+        }
+        
+        var searchText = jQuery('#searchReseller').val();
+        if (searchText !== "") {
+            var searchby = jQuery('#searchby').val();
+            attributeAll += '&searchFilter=' + searchText + '&searchby=' + searchby;
+        }
+
+//        var str = boxesValue.join(",");
+//        jQuery('#colorFilterList').html("");
+        showPopup();
+        jQuery.ajax({
+            type: "POST",
+            url: "<?php echo $this->getUrl('reseller/index/filter') ?>",
+            data: reqData + attributeAll,
+            success: function(response) {
+//                var collectionWrapper = jQuery('<div />').append(response).find('#colorFilterList').html();
+//                jQuery('#colorFilterList').html(collectionWrapper);
+                if (jQuery(el).is(':checked')) {
+                    jQuery(el).parent('.checkBoxWrap').addClass('chkBxActive');
+                    var attrName = jQuery(el).parent('.checkBoxWrap').siblings('.listItemName').text();
+                } else {
+                    jQuery(el).parent('.checkBoxWrap').removeClass('chkBxActive');
+                    jQuery('#removeAttr-'+jQuery(el).attr('attrId')).remove();
+                }
+                closePopup();
+                var pagination = jQuery('<div />').append(response).find('.categoryToolBarHolder').html();
+                if (pagination !== "undefined") {
+                    jQuery('.categoryToolBarHolder').html(pagination);
+                } else {
+                    jQuery('.categoryToolBarHolder').html("");
+                }
+                var productsFilter = jQuery('<div />').append(response).find('#productsFilter').html();
+
+                if (typeof productsFilter !== "undefined") {
+                    jQuery('#productsFilter').html(productsFilter);
+                    showFirstProduct(jQuery('<div />').append(response).find('#productsFilter > .item').first().attr( "prodId" ));
+                    var catFilterList = jQuery('<div />').append(response).find('#catFilterList').html();
+                    jQuery('#catFilterList').html(catFilterList);
+
+                } else {
+                    jQuery('#productsFilter').html("<?php echo $this->__('There are no products matching the selection') ?>");
+                }
+            }
+        });
+    }
+
+    function productGroupFilter(el) {
+        if (jQuery(el).is(':checked')) {
+            jQuery(el).parent('.checkBoxWrap').addClass('chkBxActive');
+            var attrName = jQuery(el).parent('.checkBoxWrap').siblings('.listItemName').text();
+            if(jQuery("#" + "removeAttr-" + jQuery(el).attr('attrId')).length == 0) {
+                jQuery('#filterAttributes').append('<div class="filterButton" id="removeAttr-'+jQuery(el).attr('attrId')+'">'+attrName+' <span class="removeFilter" removeAttribute="'+jQuery(el).attr('attrId')+'">X</span></div>');
+            }
+        } else {
+            jQuery(el).parent('.checkBoxWrap').removeClass('chkBxActive');
+            jQuery('#removeAttr-'+jQuery(el).attr('attrId')).remove();
+        }
+
+        var catId = jQuery('.radioBtnActive').children( ".radioBtn" ).attr('catId');
+        var reqData = '';
+        if(catId != undefined) {
+            reqData = 'categoryFilter=' + catId;
+        }
+
+        var boxes = jQuery('input[class=chkBx]:checked');
+        var boxesValueGroup = [];
+        var boxesValueColor = [];
+        jQuery(boxes).each(function() {
+            if (jQuery(this).attr('attrCode') == "product_group") {
+                boxesValueGroup.push(jQuery(this).attr('attrId'));
+            }
+            if (jQuery(this).attr('attrCode') == "color") {
+                boxesValueColor.push(jQuery(this).attr('attrId'));
+            }
+        });
+        var attributeAll = "";
+        var attributeFilterColor = boxesValueColor.join(",");
+        var attributeFilter = boxesValueGroup.join(",");
+        console.log(attributeFilterColor);
+        console.log(attributeFilter);
+        if (attributeFilterColor) {
+            attributeAll += '&attributeFilterColor=' + attributeFilterColor + '&attributeCodeColor=color';
+        }
+        if (attributeFilter) {
+            attributeAll += '&attributeFilter=' + attributeFilter + '&attributeCode=product_group';
+        }
+        
+        var searchText = jQuery('#searchReseller').val();
+        if (searchText !== "") {
+            var searchby = jQuery('#searchby').val();
+            attributeAll += '&searchFilter=' + searchText + '&searchby=' + searchby;
+        }
+
+//        var str = boxesValue.join(",");
+//        jQuery('#colorFilterList').html("");
+        showPopup();
+        jQuery.ajax({
+            type: "POST",
+            url: "<?php echo $this->getUrl('reseller/index/filter') ?>",
+            data: reqData + attributeAll,
+            success: function(response) {
+//                var collectionWrapper = jQuery('<div />').append(response).find('#colorFilterList').html();
+//                jQuery('#colorFilterList').html(collectionWrapper);
+                if (jQuery(el).is(':checked')) {
+                    jQuery(el).parent('.checkBoxWrap').addClass('chkBxActive');
+                    var attrName = jQuery(el).parent('.checkBoxWrap').siblings('.listItemName').text();
+                } else {
+                    jQuery(el).parent('.checkBoxWrap').removeClass('chkBxActive');
+                    jQuery('#removeAttr-'+jQuery(el).attr('attrId')).remove();
+                }
+                closePopup();
+                var pagination = jQuery('<div />').append(response).find('.categoryToolBarHolder').html();
+                if (pagination !== "undefined") {
+                    jQuery('.categoryToolBarHolder').html(pagination);
+                } else {
+                    jQuery('.categoryToolBarHolder').html("");
+                }
+                var productsFilter = jQuery('<div />').append(response).find('#productsFilter').html();
+
+                if (typeof productsFilter !== "undefined") {
+                    jQuery('#productsFilter').html(productsFilter);
+                    showFirstProduct(jQuery('<div />').append(response).find('#productsFilter > .item').first().attr( "prodId" ));
+//                    var catFilterList = jQuery('<div />').append(response).find('#catFilterList').html();
+//                    jQuery('#catFilterList').html(catFilterList);
+
+                } else {
+                    jQuery('#productsFilter').html("<?php echo $this->__('There are no products matching the selection') ?>");
+                }
+            }
+        });
+    }
+
+    function productSortDropDown(el){
+        jQuery(el).siblings('ul').slideToggle();
+    }
+    var sortby = "";
+    function productSortBy(el) {
+        jQuery(el).parent('ul').siblings('.prdSortBy').text(jQuery(el).text());
+        jQuery(el).parent('ul').hide();
+        sortby = jQuery(el).attr('sortBy');
+        var paramSend = "";
+        if (typeof jQuery(".radioBtnActive > .radioBtn").attr('catid') !== "undefined") {
+            paramSend += '&categoryFilter=' + jQuery(".radioBtnActive > .radioBtn").attr('catid');
+        }
+        var boxes = jQuery('input[class=chkBx]:checked');
+        var attrCode = "";
+        var boxesValue = [];
+        jQuery(boxes).each(function(){
+            attrCode = jQuery(this).attr('attrCode');
+            boxesValue.push(jQuery(this).attr('attrId'));
+        });
+
+        var str = boxesValue.join(",");
+        if (attrCode !== "" && str !== "") {
+            paramSend += '&attributeFilter=' + str + '&attributeCode=' + attrCode
+        }
+
+        var str = boxesValue.join(",");
+        if (attrCode !== "" && str !== "") {
+            paramSend += '&attributeFilter=' + str + '&attributeCode=' + attrCode
+        }
+
+        if (sortby !== "") {
+            paramSend += '&sortby=' + sortby;
+        }
+        var searchText = jQuery('#searchReseller').val();
+        if (searchText !== "") {
+            var searchby = jQuery('#searchby').val();
+            paramSend += '&searchFilter=' + searchText + '&searchby=' + searchby;
+        }
+        showPopup();
+        jQuery.ajax({
+            type: "POST",
+            url: "<?php echo $this->getUrl('reseller/index/filter') ?>",
+            data: "sortby=" + sortby + paramSend,
+            success: function(response) {
+                closePopup();
+                var pagination = jQuery('<div />').append(response).find('.categoryToolBarHolder').html();
+                if (pagination !== "undefined") {
+                    jQuery('.categoryToolBarHolder').html(pagination);
+                } else {
+                    jQuery('.categoryToolBarHolder').html("");
+                }
+                var productsFilter = jQuery('<div />').append(response).find('#productsFilter').html();
+                if (productsFilter !== "undefined") {
+                    jQuery('#productsFilter').html(productsFilter);
+//                    var catFilterList = jQuery('<div />').append(response).find('#catFilterList').html();
+//                    jQuery('#catFilterList').html(catFilterList);
+
+                    showFirstProduct(jQuery('<div />').append(response).find('#productsFilter > .item').first().attr( "prodId" ));
+                } else {
+                    jQuery('#productsFilter').html("<?php echo $this->__('There are no products matching the selection.') ?>");
+                }
+            }
+        });
+        //alert(jQuery(this).attr('class'));
+    }
+    function attributeFilterForCheckbox(el) {
+        if (jQuery(el).is(':checked')) {
+            jQuery(el).parent('.checkBoxWrap').addClass('chkBxActive');
+            var attrName = jQuery(el).parent('.checkBoxWrap').siblings('.listItemName').text();
+            if(jQuery("#" + "removeAttr-" + jQuery(el).attr('attrId')).length == 0) {
+                jQuery('#filterAttributes').append('<div class="filterButton" id="removeAttr-'+jQuery(el).attr('attrId')+'">'+attrName+' <span class="removeFilter" removeAttribute="'+jQuery(el).attr('attrId')+'">X</span></div>');
+            }
+        } else {
+            jQuery(el).parent('.checkBoxWrap').removeClass('chkBxActive');
+            jQuery('#removeAttr-'+jQuery(el).attr('attrId')).remove();
+        }
+
+        var catId = jQuery('.radioBtnActive').children( ".radioBtn" ).attr('catId');
+        var reqData = '';
+        if(catId != undefined) {
+            reqData = 'categoryFilter=' + catId;
+        }
+
+        var boxes = jQuery('input[class=chkBx]:checked');
+//        var attrCode = jQuery(el).attr('attrCode');
+        var boxesValueGroup = [];
+        var boxesValueColor = [];
+        jQuery(boxes).each(function() {
+            if (jQuery(this).attr('attrCode') == "product_group") {
+                boxesValueGroup.push(jQuery(this).attr('attrId'));
+            }
+            if (jQuery(this).attr('attrCode') == "color") {
+                boxesValueColor.push(jQuery(this).attr('attrId'));
+            }
+        });
+        var attributeAll = "";
+        var attributeFilterColor = boxesValueColor.join(",");
+        var attributeFilter = boxesValueGroup.join(",");
+//        console.log(attributeFilterColor);
+        if (attributeFilter) {
+        
+            attributeAll += '&attributeFilter=' + attributeFilter + '&attributeCode=product_group';
+        }
+        if (attributeFilterColor) {
+            attributeAll += '&attributeFilterColor=' + attributeFilterColor + '&attributeCodeColor=color';
+        }
+        var searchText = jQuery('#searchReseller').val();
+        if (searchText !== "") {
+            var searchby = jQuery('#searchby').val();
+            attributeAll += '&searchFilter=' + searchText + '&searchby=' + searchby;
+        }
+
+//        console.log('--str-');
+//        console.log(str);
+//        jQuery('#pgFilterList').html("");
+        showPopup();
+        jQuery.ajax({
+            type: "POST",
+            url: "<?php echo $this->getUrl('reseller/index/filter') ?>",
+            data: reqData + attributeAll,
+            success: function(response) {
+                closePopup();
+//                var pgFilterList = jQuery('<div />').append(response).find('#pgFilterList').html();
+//                jQuery('#pgFilterList').html(pgFilterList);
+                var pagination = jQuery('<div />').append(response).find('.categoryToolBarHolder').html();
+                if (pagination !== "undefined") {
+                    jQuery('.categoryToolBarHolder').html(pagination);
+                } else {
+                    jQuery('.categoryToolBarHolder').html("");
+                }
+                var productsFilter = jQuery('<div />').append(response).find('#productsFilter').html();
+                if (productsFilter !== "undefined") {
+                    jQuery('#productsFilter').html(productsFilter);
+
+                    showFirstProduct(jQuery('<div />').append(response).find('#productsFilter > .item').first().attr( "prodId" ));
+                } else {
+                    jQuery('#productsFilter').html("<?php echo $this->__('There are no products matching the selection.') ?>");
+                }
+            }
+        });
+    }
+
+    jQuery(document).on('click', ".removeFilter" , function() {
+        jQuery('#attr-'+jQuery(this).attr('removeAttribute')).trigger("click");
+    });
+
+    jQuery('#searchReseller').keypress(function(e) {
+        if(e.which == 13) {
+            makeSearchFilter();
+        }
+    });
+
+    function makeSearchFilter() {
+        showPopup();
+        var searchText = jQuery('#searchReseller').val();
+        var searchby = jQuery('#searchby').val();
+        jQuery.ajax({
+            type: "POST",
+            url: "<?php echo $this->getUrl('reseller/index/filter') ?>",
+            data: 'searchFilter=' + searchText + '&searchby=' + searchby,
+            success: function(response) {
+                closePopup();
+                var firstProd = jQuery('<div />').append(response).find('#productsFilter > .item').first().attr( "prodId" );
+                if (typeof firstProd !== "undefined") {
+                    showFirstProduct(firstProd);
+                    var pagination = jQuery('<div />').append(response).find('.categoryToolBarHolder').html();
+                    if (pagination !== "undefined") {
+                        jQuery('.categoryToolBarHolder').html(pagination);
+                    } else {
+                        jQuery('.categoryToolBarHolder').html("");
+                    }
+                    var productsFilter = jQuery('<div />').append(response).find('#productsFilter').html();
+                    jQuery('#productsFilter').html(productsFilter);
+                } else {
+                    jQuery('#productsFilter').html("<?php echo $this->__('There are no products matching the selection.') ?>");
+                }
+            }
+        });
+    }
+    function loadFirstData() {
+        if(typeof jQuery('#productsFilter > .item').first().attr( "prodId" ) !== "undefined") {
+            showFirstProduct(jQuery('#productsFilter > .item').first().attr( "prodId" ));
+            showPopup();
+        }
+    }
+
+    
+
+    function pagerfunction(el){
+        showPopup();
+        var paramSend = "";
+        if (typeof jQuery(".radioBtnActive > .radioBtn").attr('catid') !== "undefined") {
+            paramSend += '&categoryFilter=' + jQuery(".radioBtnActive > .radioBtn").attr('catid');
+        }
+        var boxes = jQuery('input[class=chkBx]:checked');
+        var attrCode = "";
+        var boxesValue = [];
+        jQuery(boxes).each(function(){
+            attrCode = jQuery(this).attr('attrCode');
+            boxesValue.push(jQuery(this).attr('attrId'));
+        });
+
+        var str = boxesValue.join(",");
+        if (attrCode !== "" && str !== "") {
+            paramSend += '&attributeFilter=' + str + '&attributeCode=' + attrCode
+        }
+
+        var str = boxesValue.join(",");
+        if (attrCode !== "" && str !== "") {
+            paramSend += '&attributeFilter=' + str + '&attributeCode=' + attrCode
+        }
+
+        if (sortby !== "") {
+            paramSend += '&sortby=' + sortby;
+        }
+        var searchText = jQuery('#searchReseller').val();
+        if (searchText !== "") {
+            var searchby = jQuery('#searchby').val();
+            paramSend += '&searchFilter=' + searchText + '&searchby=' + searchby;
+        }
+        jQuery.ajax({
+            type: "POST",
+            url: jQuery(el).attr('urlattr') + paramSend,
+            success: function(response) {
+                closePopup();
+                showFirstProduct(jQuery('<div />').append(response).find('#productsFilter > .item').first().attr( "prodId" ));
+                var pagger = jQuery('<div />').append(response).find('#list-pagger').html();
+                jQuery('#list-pagger').html(pagger);
+                var productsFilter = jQuery('<div />').append(response).find('#productsFilter').html();
+                jQuery('#productsFilter').html(productsFilter);
+            }
+        });
+    }
+
+    function showShortDesc() {
+        jQuery('.prdDescription').slideToggle('fast');
+    }
+    function showSizeDesc() {
+        jQuery('.prdSizeGuide').slideToggle('fast');
+    }
+    function showWashingDesc() {
+        jQuery('.washingDescription').slideToggle('fast');
+    }
+    
+    function showDelivaryTime(el) {
+        jQuery(el).siblings( ".deliveryDatePopup" ).show();
+    }
+    function hideDelivaryTime(el) {
+        jQuery(el).siblings( ".deliveryDatePopup" ).hide();
+    }
+
+</script>
+<script language="JavaScript" type="text/javascript">
+    jQuery(document).ready(function(){
+        jQuery('.carousel').carousel({
+            interval: 3000
+        });
+    });
+</script>

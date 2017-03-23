@@ -25,7 +25,6 @@
             </block>
             <!-- Add product list to content -->
             <block type="reseller/list" name="product_list" template="catalog/product/list-reseller.phtml">
-                <block type="ibanner/reseller" name="reseller_banner" template="my_ibanner/content/topResellerBanner.phtml" />
                 <!-- Add toolbar to product list -->
                 <block type="catalog/product_list_toolbar" name="product_list_toolbar" template="catalog/product/list/toolbar.phtml">
                     <!-- Add pager to toolbar -->
