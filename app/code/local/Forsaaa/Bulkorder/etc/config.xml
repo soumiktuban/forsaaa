@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Forsaaa_Bulkorder>
+            <version>1.0.0</version>
+        </Forsaaa_Bulkorder>
+    </modules>
+    
+    <frontend>
+        <routers>
+            <bulkorder>
+                <use>standard</use>
+                <args>
+                    <module>Forsaaa_Bulkorder</module>
+                    <frontName>bulkorder</frontName>
+                </args>
+            </bulkorder>
+        </routers>
+        <layout>
+            <updates>
+                <bulkorder module="Forsaaa_Bulkorder">
+                    <file>bulkorder.xml</file>
+                </bulkorder>
+            </updates>
+        </layout>
+    </frontend>
+</config>
