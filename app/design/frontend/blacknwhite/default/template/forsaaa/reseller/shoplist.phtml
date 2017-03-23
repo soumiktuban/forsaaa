@@ -1,0 +1,541 @@
+<?php
+    $customerData = Mage::getSingleton('customer/session')->getCustomer();
+    $userid = $customerData->getId();
+    $link = Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_MEDIA);
+    $storeId = Mage::app()->getStore()->getRootCategoryId();
+    $parentCategory = Mage::getModel('catalog/category')->load(2);
+    if (Mage::getSingleton('customer/session')->isLoggedIn()) {
+        $groupId = Mage::getSingleton('customer/session')->getCustomerGroupId();
+        $groupCategories = Mage::getModel('customer/group')->load($groupId)->getCategories();
+    }
+    $categories = $parentCategory->getChildrenCategories();
+    $allCat = array();
+    foreach ($categories as $_category) {
+        $allCat[] = $_category;
+    }
+    $collection = $this->_getProductCollection();
+    $carts = Mage::getSingleton('checkout/session')->getQuote()->getAllItems();
+    $products = Mage::registry('products');
+?>
+<div class="dashboard">
+    <div class="wrap-heading"><h1><?php echo $this->__('Catalog Shopping') ?></h1></div>
+    <div class="right_col_content">
+        <div class="pull-left">
+            <form action="" method="GET">
+                <div class="wrap-top-select">
+                    <div class="wrap-category pull-left">
+                        <select name="cate" id="parent-cate">
+                            <option class="cat-name" value="">---<?php echo $this->__('Category') ?>---</option>
+                            <?php if (count($allCat) > 0) : ?>
+                                <?php foreach ($allCat as $_categoryId) : ?>
+                                    <?php $selected = ($this->getData('category') == $_categoryId->getId()) ? 'selected' : ''; ?>
+                                    <option class="cat-name" <?php echo $selected ?> value="<?php echo $_categoryId->getId(); ?>"><?php echo $_categoryId->getName(); ?></option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                    <div class="wrap-sub-category pull-left">
+                        <select name="subcate" id="sub-cate-clone">
+                            <option class="" value="">---<?php echo $this->__('Sub Category') ?>---</option>
+                            <?php foreach ($categories as $_category) : ?>
+                                <?php
+                                if ($this->getData('category') != $_category->getId()) {
+                                    continue;
+                                }
+                                ?>
+                                <?php $_categories_lv2 = $_category->getChildrenCategories(); ?>
+                                <?php foreach ($_categories_lv2 as $_category_lv2) : ?>
+                                    <?php $selected = ( $this->getData('subcate') == $_category_lv2->getId() ) ? "selected" : ""; ?>
+                                    <option rel="<?php echo $_category->getId() ?>" class="cat-name" <?php echo $selected; ?> value="<?php echo $_category_lv2->getId(); ?>"><?php echo $_category_lv2->getName(); ?></option>
+                                <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <select id="sub-cate" style="display: none;">
+                        <option class="" value="">---<?php echo $this->__('Sub Category') ?>---</option>
+                        <?php foreach ($categories as $_category) : ?>
+                            <?php $_categories_lv2 = $_category->getChildrenCategories(); ?>
+                            <?php foreach ($_categories_lv2 as $_category_lv2) : ?>
+                                <option rel="<?php echo $_category->getId() ?>" class="cat-name" <?php echo $selected; ?> value="<?php echo $_category_lv2->getId(); ?>"><?php echo $_category_lv2->getName(); ?></option>
+                            <?php endforeach; ?>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="search-product">
+                    <input id="searchShop" name="name" value="<?php echo $this->getData('name') ?>" type="text" class="searchshop pull-left" placeholder="<?php echo $this->__('Name'); ?>" />
+                    <div class="wrap-select-attribute pull-left">
+                        <select id="pro-type" name="type_name" class="">
+                            <option class="cat-name" value=""><?php echo $this->__('Filter by SKU/Name') ?></option>
+                            <option <?php if ($this->getData('type_name') == 'sku') echo 'selected'; ?> value="sku"><?php echo $this->__('SKU') ?></option>
+                            <option <?php if ($this->getData('type_name') == 'name') echo 'selected'; ?> value="name"><?php echo $this->__('Name') ?></option>
+                        </select>
+                    </div>
+                    <input id="btn-search-product" value="<?php echo $this->__('Search'); ?>" class="btn pull-left" type="submit"/>
+                    <a href="<?php echo $this->getUrl('reseller/index/index/'); ?>" class="btn pull-left" id="btn-add-product"><?php echo $this->__('Clear Result'); ?></a>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="list-order">
+        <?php if ($this->getToolbarBlock()->setTemplate('catalog/product/list/toolbar_top.phtml')): ?>
+            <?php echo $this->getToolbarBlock()->setTemplate('catalog/product/list/toolbar_top.phtml')->toHtml(); ?>
+        <?php else : ?>
+            <div style="height: 45px;display: block;width: 660px;padding: 14px 0px 14px;"></div>
+        <?php endif; ?>
+        <div id="messages_product_view">
+            <?php Mage::app()->getLayout()->getMessagesBlock()->setMessages(Mage::getSingleton('customer/session')->getMessages(true)); ?>
+            <?php echo Mage::app()->getLayout()->getMessagesBlock()->getGroupedHtml(); ?>
+        </div>
+        <?php echo $this->getLayout()->createBlock('cms/block')->setBlockId('reseller_misterminit_minsida_info')->toHtml() ?>
+        <form action="<?php echo $this->getUrl('reseller/order/add') ?>" method="post" id="form-reseller" onsubmit="return formValidate();">
+            <div class="wrap-top-table">
+                <div class="note-description">
+                    <span class="note-icon"></span>
+                    <?php echo $this->getChildHtml('resellerNote') ?>
+                </div>
+                <div class="wrap-toolbar-reseller">
+                    <div class="number-products">
+                        <span><?php echo $collection->getSize(); ?></span>
+                        <?php echo $this->__('Products') ?>
+                    </div>
+                    <?php echo $this->getToolbarBlock()->setTemplate('catalog/product/list/toolbar.phtml')->toHtml(); ?>
+                    <div class="top-btn-cartreseller">
+                        <button <?php if (!Mage::getSingleton('core/session')->getResellerCartVal()) : ?>disabled="disabled"<?php endif; ?> class="btn_cart btn btn-info btn-buy-reseller">
+                            <?php echo $this->__('Buy') ?>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <table class="table table-bordered" id="my-orders-table" width="100%">
+                <thead>
+                    <tr>
+                        <th class="sku-row"><span class="sku-head"><?php echo $this->__('Image') ?></span></th>
+                        <th class="sku-row"><span class="sku-head"><?php echo $this->__('Article nr.') ?></span></th>
+                        <th class="name-row"><span class="name-head"><?php echo $this->__('Name') ?></span></th>
+                        <th class="price-row"><span class="price-head"><?php echo $this->__('Price') ?></span></th>
+                        <th class="numberbox-row"><span class="qty-head"><?php echo $this->__('Pcs/pack') ?></span></th>
+                        <th class="stock-row" align="center"><span class="qty-head"><?php echo $this->__('Status') ?></span></th>
+                        <th class="bttn-row">
+                            <span class="ladantal"><?php echo $this->__('Box Quantity') ?></span>
+                        </th>
+                        <th class="bttn-row">
+                            <span class="ladantal"><?php echo $this->__('Product Options') ?></span>
+                        </th>
+                    </tr>
+                </thead>
+                <tfoot>
+                    <tr>
+                        <td colspan='4'></td>
+                        <td class="qtyitem-row">
+                            <button disabled="disabled" class="btn_cart btn btn-info btn-buy-reseller">
+                                <?php echo $this->__('Buy') ?>
+                            </button>
+                        </td>
+                    </tr>
+                </tfoot>
+                <tbody class="load-ajax">
+                    <?php
+                    $itemcount = count($collection);
+                    $_iterator = 0;
+                    foreach ($collection as $item) :
+                        $type = $item->getTypeId();
+                        $attributes = $item->getAttributes();
+                        $numberEachBox = $item->getNumbersOfEachBox();
+                        if ($numberEachBox == 'Nej')
+                            $numberEachBox = 1;
+                        ?>
+                        <?php if ($item->getTypeId() != 'configurable' || $item->getTypeId() != 'grouped'): ?>
+                            <tr class="<?php if ($_iterator == 0): ?>first <?php endif; ?>
+                            <?php foreach ($carts as $cart): ?>
+                                <?php if ($type == 'configurable'): ?>
+                                <?php $childProducts = Mage::getModel('catalog/product_type_configurable')->getUsedProducts(null, $item); ?>
+                                <?php foreach ($childProducts as $childProducts): ?>
+                                        <?php if ($cart->getProduct()->getId() == $childProducts->getId()): ?>row_bold <?php endif; ?>
+                                    <?php endforeach; ?>
+                                    <?php endif; ?>
+                                    <?php if ($cart->getProduct()->getId() == $item->getId()): ?>row_bold <?php endif; ?>
+                                <?php endforeach; ?>
+                                <?php if (++$_iterator == $itemcount): ?>last<?php endif; ?> <?php echo ($_iterator % 2 == 0) ? 'even' : 'odd'; ?>">
+                                <td class="imgFldReseller"><a href="<?php echo $item->getProductUrl(); ?>"><img src="<?php echo $this->helper('catalog/image')->init(Mage::getModel('catalog/product')->load($item->getId()), 'thumbnail')->resize(50, 50); ?>" /></a></td>
+                                <td><?php echo $item->getSku(); ?></td>
+                                <td><a href="<?php echo $item->getProductUrl(); ?>"><?php echo $item->getName(); ?></a></td>
+                                <td align="center"><?php echo $this->getPriceHtml($item, true); ?></td>
+                                <td align="center"><?php echo $numberEachBox; ?></td>
+                                <td align="center">
+                                    <?php $catalogProductHelper = Mage::helper('catalog/product'); ?> 
+                                    <?php if ($item->isAvailable()): ?>
+                                        <p class="availability in-stock"><span></span><?php echo $this->__('In stock') ?></p>
+                                    <?php else: ?>
+                                        <p class="availability out-of-stock"><?php echo $this->__('Out of stock') ?></p>
+                                    <?php endif; ?>
+                                </td>
+                               
+                                <?php foreach ($this->getForm($item) as $child) :
+                                    //Mage::log($child,null,'child.log');
+                                    ?>
+                                <?php if ($type != 'configurable'): ?>
+                                    <td class="qty-row">
+                                        <div class="arrow-qty" >
+                                            <a href="javascript:void(0);" class="arrow-up-qty" style="right: 4px;"></a>
+                                            <a href="javascript:void(0);" class="arrow-down-qty" style="right: 4px;"></a>
+                                            <span class="scteamsales-option-input-container">
+                                                <?php $check = ''; ?>
+                                                <?php foreach ($products as $k => $v) : ?>
+                                                    <?php if ($k == $child['id']): ?>
+                                                        <?php
+                                                        $check = $k;
+                                                        break;
+                                                        ?>
+                                                    <?php endif; ?>
+                                                <?php endforeach; ?>
+                                                <?php
+                                                $model = Mage::getModel('catalog/product');
+                                                $_product = $model->load($item->getId());
+                                                //Mage::log($_product->getData(),null,'pro.log');
+                                                $resellerCartItems = Mage::getSingleton('core/session')->getResellerCartVal();
+                                                $prodQtyTaken = 0;
+                                                if (!empty($resellerCartItems['products'][$child['id']])) {
+                                                    $prodQtyTaken = $resellerCartItems['products'][$child['id']];
+                                                }
+                                                ?>
+                                                <?php if ($check !== '') : ?>
+                                                    <div class="product-qty 1">
+                                                        <input type="text" maxqty="<?php echo $_product->getStockItem()->getMaxSaleQty(); ?>" name="products[<?php echo $child['id']; ?>]" class="form-control qty input-qty-prod input-mini sc-arrows-input sc-countable scteamsales-option-input" childid=<?php echo $child['id']; ?> value="<?php echo $products[$check] ?>" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
+                                                        <div class="plus-minus-qty">
+                                                            <input class="plus-qty" type="button" value="+">
+                                                            <input class="minus-qty" type="button" value="-">
+                                                        </div>
+                                                    </div>
+                                                <?php else : ?>
+                                                    <div class="product-qty 2">
+                                                        <?php  if ($type == 'configurable') echo $child['name']; ?>
+                                                        <input type="text" maxqty="<?php echo $_product->getStockItem()->getMaxSaleQty(); ?>" name="products[<?php echo $child['id']; ?>]" class="form-control qty input-qty-prod input-mini sc-arrows-input sc-countable scteamsales-option-input" childid=<?php echo $child['id']; ?> value="<?php echo $prodQtyTaken ?>" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
+                                                        <div class="plus-minus-qty">
+                                                            <input class="plus-qty" type="button" value="+">
+                                                            <input class="minus-qty" type="button" value="-">
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                                    
+                                    <td>
+                                         <?php if($item->isConfigurable()): ?>
+
+                                        <?php $attributes = $item->getTypeInstance(true)->getConfigurableAttributes($item) ?>
+                                        <?php if(count($attributes)): ?>
+                                          <ul>
+                                          <?php foreach($attributes as $att): ?>
+                                            <?php $pAtt=$att->getProductAttribute();
+
+                                              $allProducts = $item->getTypeInstance(true)->getUsedProducts(null, $item);
+                                              $frontValues =array() ?>
+                                            <li><?php echo $pAtt->getFrontendLabel() ?>
+                                                
+                                             <select>
+                                             <?php foreach($allProducts as $p): ?>
+
+                                               <?php if(!$p->isSaleable()) continue; ?>
+                                               <?php $out=$p->getAttributeText($pAtt->getName()); ?>
+                                               <?php $frontValues[$out]=$out; ?>
+                                             <?php endforeach ?>
+                                              <option><?php echo implode('</option><option>', $frontValues) ?></option>
+                                             </select>
+                                                
+                                            </li>
+                                          <?php endforeach ?>
+                                          </ul>
+                                        <?php endif ?>
+                                      <?php endif ?>
+                                    </td>
+                            </tr>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                    <?php foreach ($products as $k => $v): ?>
+                        <?php foreach ($collection as $item): ?>
+                            <?php $check = false; ?>
+                            <?php if ($k == $item->getID()): ?>
+                                <?php
+                                $check = true;
+                                break;
+                                ?>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                        <?php if (!$check): ?>
+                            <tr style="display:none"><input type="hidden" class="input-qty-hidden" name="products[<?php echo $k ?>]" value="<?php echo $v ?>" /></tr>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+            <input type="hidden" name="return_url" value="<?php echo Mage::getUrl('reseller/index/index') ?>" />
+            <div class="wrap-top-table">
+                <div class="wrap-toolbar-reseller">
+                    <div class="number-products">
+                        <span><?php echo $collection->getSize(); ?></span>
+                        <?php echo $this->__('Products') ?>
+                    </div>
+                    <?php echo $this->getToolbarBlock()->setTemplate('catalog/product/list/toolbar.phtml')->toHtml(); ?>
+                    <button disabled="disabled" class="btn_cart btn btn-info btn-buy-reseller">
+                        <?php echo $this->__('Buy') ?>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<div id="reseller-msg-box-info" style="display: none;">
+    <p><?php echo $this->__('You have selected products that are not yet added to cart, do you still want to navigate away from this page?') ?></p>
+    <button type="button" class="msg-yes-btn"><?php echo $this->__('Yes') ?></button>
+    <button type="button" class="msg-no-btn"><?php echo $this->__('No') ?></button>
+</div>
+<script>
+    jQuery(document).ready(function($) {
+        var tempLink = '';
+        var crtQty = 0;
+        jQuery.ajax({
+            url: "<?php echo $this->getUrl('reseller/order/resellercartitemscheck') ?>",
+            success: function(data) {
+                if (data != "") {
+                    crtQty = 1;
+                }
+            }
+        });
+        jQuery('a').on('click', function() {
+            var removeButton = 0;
+            if (jQuery(this).attr('class') && jQuery(this).attr('class').indexOf('remove') != -1) {
+                removeButton = 1;
+            }
+            if (jQuery(this).attr('href').indexOf('reseller') == -1) {
+                if (crtQty > 0 && removeButton == 0) {
+                    jQuery('#reseller-msg-box-info').css('display', 'block');
+                    tempLink = jQuery(this).attr('href');
+                    return false;
+                }
+            }
+
+
+        });
+        jQuery('.msg-no-btn').on('click', function() {
+            window.location.href = tempLink;
+            jQuery('#reseller-msg-box-info').css('display', 'none');
+        });
+        jQuery('.msg-yes-btn').on('click', function() {
+            jQuery('#reseller-msg-box-info').css('display', 'none');
+        });
+
+        var count = 0;
+        var value = parseInt(jQuery(this).find('.input-qty-prod').val());
+        jQuery('#my-orders-table > .load-ajax').find('tr').each(function() {
+            if (parseInt(jQuery(this).find('.input-qty-hidden').val()) > 0)
+                count++;
+            if (parseInt(jQuery(this).find('.input-qty-prod').val()) > 0 || parseInt(jQuery(this).find('.input-qty-hidden').val()) > 0) {
+                jQuery('#form-reseller').find('.btn_cart').each(function() {
+                    jQuery(this).removeAttr('disabled');
+                });
+            }
+        });
+        jQuery('.input-qty-prod').on('click', function() {
+            $check = false;
+            jQuery(this).parent().parent().parent().parent().parent().parent().find('tr').each(function() {
+                if (parseInt(jQuery(this).find('.input-qty-prod').val()) >= 0) {
+                    $check = true;
+                }
+            });
+            if ($check) {
+                jQuery(this).parent().parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                    jQuery(this).removeAttr('disabled');
+                    jQuery(".btn-buy-reseller").removeAttr('disabled');
+                });
+            } else {
+                jQuery(this).parent().parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                    jQuery(this).attr('disabled', 'disabled');
+                    jQuery(".btn-buy-reseller").attr('disabled', 'disabled');
+                });
+            }
+        });
+        jQuery('.plus-qty').on('click', function() {
+            var $check = false;
+            var $this = $(this);
+            var $qty = $this.parents('.product-qty').find('.qty');
+            var value = Math.floor($qty.val());
+
+            if ('' !== $qty.val() && !isNaN($qty.val()) && 0 <= value) {
+                $qty.val(value + 1);
+
+                jQuery.ajax({
+                    type: "POST",
+                    url: "<?php echo $this->getUrl('reseller/order/resellercartitemsadd') ?>",
+                    data: 'childid=' + $qty.attr('childid') + '&qty=' + $qty.val(),
+                    success: function(data) {
+                        if (data != "") {
+                            crtQty = 1;
+                        } else {
+                            crtQty = 0;
+                        }
+                    }
+                });
+            }
+            jQuery(this).parent().parent().parent().parent().parent().parent().parent().find('tr').each(function() {
+                if (parseInt(jQuery(this).find('.input-qty-prod').val()) > 0) {
+                    $check = true;
+                }
+            });
+            if ($check) {
+                jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                    jQuery(this).removeAttr('disabled');
+                    jQuery(".btn-buy-reseller").removeAttr('disabled');
+                });
+            } else {
+                jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                    jQuery(this).attr('disabled', 'disabled');
+                    jQuery(".btn-buy-reseller").attr('disabled', 'disabled');
+                });
+            }
+        });
+        jQuery('.minus-qty').click(function() {
+            var $test = false;
+            var $this = $(this);
+            var $qty = $this.parents('.product-qty').find('.qty');
+            var value = parseInt($qty.val());
+
+            if (0 >= value || isNaN($qty.val())) {
+                $qty.val(0);
+            } else {
+                $qty.val(value - 1);
+                jQuery.ajax({
+                    type: "POST",
+                    url: "<?php echo $this->getUrl('reseller/order/resellercartitemsadd') ?>",
+                    data: 'childid=' + $qty.attr('childid') + '&qty=' + $qty.val(),
+                    success: function(data) {
+                        if (data != "") {
+                            crtQty = 1;
+                        } else {
+                            crtQty = 0;
+                        }
+                    }
+                });
+            }
+            jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('tr').each(function() {
+                if (parseInt(jQuery(this).find('.input-qty-prod').val()) > 0) {
+                    $test = true;
+                }
+            });
+            if ($test) {
+                jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                    jQuery(this).removeAttr('disabled');
+                    jQuery(".btn-buy-reseller").removeAttr('disabled');
+                });
+            } else {
+                jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                    jQuery(this).attr('disabled', 'disabled');
+                    jQuery(".btn-buy-reseller").attr('disabled', 'disabled');
+                });
+            }
+        });
+
+        jQuery('.qty').focusout(function() {
+            var $buyEnable = false;
+            var $qty = $(this);
+            var value = parseInt($qty.val());
+
+            if (0 >= value || isNaN($qty.val())) {
+                $qty.val(0);
+            } else {
+                jQuery.ajax({
+                    type: "POST",
+                    url: "<?php echo $this->getUrl('reseller/order/resellercartitemsadd') ?>",
+                    data: 'childid=' + $qty.attr('childid') + '&qty=' + $qty.val(),
+                    success: function(data) {
+                        if (data != "") {
+                            crtQty = 1;
+                        } else {
+                            crtQty = 0;
+                        }
+                    }
+                });
+            }
+            jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('tr').each(function() {
+                if (parseInt(jQuery(this).find('.input-qty-prod').val()) > 0) {
+                    $buyEnable = true;
+                }
+            });
+            if ($buyEnable) {
+                jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                    jQuery(this).removeAttr('disabled');
+                    jQuery(".btn-buy-reseller").removeAttr('disabled');
+                });
+            } else {
+                jQuery(this).parent().parent().parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                    jQuery(this).attr('disabled', 'disabled');
+                    jQuery(".btn-buy-reseller").attr('disabled', 'disabled');
+                });
+            }
+        });
+
+        $$('#parent-cate')[0].observe('change', function() {
+            $$('#sub-cate-clone option')[0].selected = true;
+            var i = 0;
+            $$('#sub-cate-clone option').each(function(el) {
+                if (i != 0) {
+                    el.remove();
+                }
+                i++;
+            });
+            $$('#sub-cate option[rel="' + this.value + '"]').each(function(el) {
+                var option = Element.clone(el, true);
+                $$('#sub-cate-clone')[0].appendChild(option);
+            });
+        })
+        jQuery('.arrow-up-qty').click(function() {
+            var $input = jQuery(this).parent().find('.input-qty-prod');
+            var $qty = parseInt($input.val());
+            if ($qty >= 0) {
+                $qty = $qty + 1;
+                $input.val($qty);
+                jQuery(this).parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                    jQuery(this).removeAttr('disabled');
+                });
+            } else {
+                $input.val(0);
+            }
+        });
+        jQuery('.arrow-down-qty').click(function() {
+            var $input = jQuery(this).parent().find('.input-qty-prod');
+            var $qty = parseInt($input.val());
+            if ($qty > 1) {
+                $qty = $qty - 1;
+                $input.val($qty);
+            } else {
+                $input.val(0);
+                $check = false;
+                jQuery(this).parent().parent().parent().parent().parent().find('tr').each(function() {
+                    if (parseInt(jQuery(this).find('.input-qty-prod').val()) > 0) {
+                        $check = true;
+                    }
+                });
+                if (!$check) {
+                    jQuery(this).parent().parent().parent().parent().parent().parent().find('.btn_cart').each(function() {
+                        jQuery(this).attr('disabled', 'disabled');
+                    });
+                }
+            }
+        });
+    });
+    var formValidate = function() {
+        jQuery('button.btn_cart').each(function() {
+            $(this).disabled = true;
+        });
+        var isSubmit = true;
+        $$('#my-orders-table input').each(function(item) {
+            if (item.value && parseInt(item.value, 10) > parseInt(item.readAttribute('maxqty'), 10)) {
+                var title = item.up('tr').childElements('td')[1].innerHTML;
+                alert(title + '<?php echo $this->__(": The maximum quantity allowed for purchase is ") ?>' + item.readAttribute('maxqty'));
+                isSubmit = false;
+            }
+        });
+        return isSubmit;
+    }
+</script>

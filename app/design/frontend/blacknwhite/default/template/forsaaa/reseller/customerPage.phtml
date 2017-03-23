@@ -1,0 +1,208 @@
+<div class="col1Layout">
+    <h2 class="pageHeading"><?php echo $this->__('Customers') ?></h2>
+    <div class="customerTopButtonsWrap">
+        <div class="acctItem"><a href="<?php echo Mage::getUrl('reseller/index/reselleradd'); ?>"><?php echo $this->__('Reseller Add') ?></a></div>
+        <button class="selectCustButton" onclick="selectCustomer()"><?php echo $this->__('Select Customer') ?></button>
+        <div class="backButton">
+            <a class="button" href="#">
+                <span class="glyphicon glyphicon-menu-left"></span> <span class="buttonText"><?php echo $this->__('Back') ?></span>
+            </a>
+        </div>
+        <?php
+        if(Mage::getSingleton('customer/session')->isLoggedIn()) {
+            $customerData = Mage::getSingleton('customer/session')->getCustomer();
+            $groupId = $customerData['group_id'];
+        }
+        if($groupId == 4): 
+        ?>
+        <div class="selectWrap">
+            <span class="sectedValue"></span>
+            <select name="seller" id="seller" class="select">
+               <option><?php echo "---" . $this->__('Choose seller') . "---" ?></option>
+                <?php
+                    //$sellerId = $this->getRequest()->getParam('seller');
+                    $currentUrl = Mage::helper('core/url')->getCurrentUrl();
+                    $customerAttrSeller = 'seller';
+                    $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $customerAttrSeller);
+                    $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                    foreach ($options as $option):
+                ?>
+                    <option class="slctOptn" value="<?php echo $option["value"]; ?>"><?php echo $option["label"]; ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php endif; ?>
+        <div class="customerSearchWrap">
+            <div class="form-group">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Frisök" id="searchInput">
+                    <div class="input-group-addon"><button class="customerSearchBtn" onclick="searchReseller()"><span class="glyphicon glyphicon-search"></span></button></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="customerTableWrapper">
+        <div class="customerTable">
+        <div class="custTableHeading">
+            <div class="radioWrap">&nbsp;</div>
+            <div class="custNo"><?php echo $this->__('CustNo') ?><a href="<?php echo Mage::getBaseUrl().'reseller/index/customerpage/?custno'; ?>"><span class="sortButton"></span></a></div>
+            <div class="custName"><?php echo $this->__('Name') ?><a href="<?php echo Mage::getBaseUrl().'reseller/index/customerpage/?name'; ?>"><span class="sortButton"></span></a></div>
+            <div class="country"><?php echo $this->__('Country') ?></div>
+            <div class="state"><?php echo $this->__('City') ?></div>
+            <div class="email"><?php echo $this->__('Email') ?></div>
+            <div class="seller"><?php echo $this->__('Seller') ?><a href="<?php echo Mage::getBaseUrl().'reseller/index/customerpage/?seller'; ?>"><span class="sortButton"></span></a></div>
+            <div class="agent"><?php echo $this->__('Agent') ?><a href="<?php echo Mage::getBaseUrl().'reseller/index/customerpage/?agent'; ?>"><span class="sortButton"></span></a></div>
+            <div class="editItem">&nbsp;</div>
+        </div>
+        <?php
+            $user = $this->getLoadedResellerCollection();
+            $count = $user->getSize();
+            foreach ($user as $key => $value) :
+                $address_id = $value->getDefaultBilling();
+                $address = Mage::getModel('customer/address')->load($address_id);
+        ?>
+                <div class="custDataRow">
+                    <div class="radioWrap">
+                        <div class="radioBtnWrap"><input class="radioBtn" type="radio" name="cust" value="<?php echo $value['entity_id'] ?>" onclick="selectCustomerRadio(this)" /></div>
+                    </div>
+                    <div class="custNo">
+                        <span><?php echo (!empty($value['prefix']) ? $value['prefix'] : '&nbsp'); ?></span>
+                    </div>
+                    <div class="custName">
+                        <span><?php echo (!empty($value['firstname']) ? $value['firstname'] : '&nbsp'); ?></span>
+                    </div>
+                    <div class="country">
+                        <span><?php
+                        $country = $address->getCountry();
+                        $country_name=Mage::app()->getLocale()->getCountryTranslation($country);
+                        echo (!empty($country_name) ? $country_name : '&nbsp');
+                        ?></span>
+                    </div>
+                    <div class="state">
+                        <span><?php
+                        $city = $address->getCity();
+                        echo (!empty($city) ? $city : '&nbsp');
+                        ?></span>
+                    </div>
+                    <div class="email">
+                        <span><?php echo (!empty($value['email']) ? $value['email'] : '&nbsp'); ?></span>
+                    </div>
+                    <div class="seller">
+                    <?php
+                    $attributeCode = 'seller';
+                    $attributeDetailsSecond = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCode);
+                    $optionsAll = $attributeDetailsSecond->getSource()->getAllOptions(false);
+                    $valueSeller = '';
+                    foreach ($optionsAll as $option) {
+                        if ($option["value"] == $value['seller']) {
+                            $valueSeller = $option["label"];
+                        }
+                    }
+                    ?>
+                        <span><?php echo (!empty($valueSeller) ? $valueSeller : '&nbsp'); ?></span>
+                    </div>
+                    <div class="agent">
+                        <?php
+                    $attributeCodeAgent = 'agent';
+                    $attributeDetailsAgent = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCodeAgent);
+                    $optionsAllAgent = $attributeDetailsAgent->getSource()->getAllOptions(false);
+                    $valueAgent = '';
+                    foreach ($optionsAllAgent as $optionsAllAgentEach) {
+                        if ($optionsAllAgentEach["value"] == $value['agent']) {
+                            $valueAgent = $optionsAllAgentEach["label"];
+                        }
+                    }
+
+                    ?>
+                        <span><?php echo (!empty($valueAgent) ? $valueAgent : '&nbsp'); ?></span>
+                    </div>
+                    <div class="editItem">
+                        <button class="editItemButton" onclick="window.location = '<?php echo Mage::getUrl('reseller/index/customerdetailspage') . "?value=" . $value['entity_id']; ?>'"><span class="glyphicon glyphicon-pencil"></span></button>
+                    </div>
+                </div>
+                <?php
+            endforeach;
+        ?>
+        </div>
+    </div>
+</div>
+<script>
+    function selectCustomer() {
+        var custId = jQuery('.radioBtnActive').children(".radioBtn").val();
+        if (custId == undefined) {
+            alert('<?php echo $this->__('Please select the reseller.') ?>');
+            return;
+        } else {
+            jQuery('.orderOverlay').show();
+            jQuery('.loader').show();
+            jQuery.ajax({
+                type: "POST",
+                url: "<?php echo $this->getUrl('reseller/index/setreseller') ?>",
+                data: 'customerId=' + custId,
+                success: function() {
+                    window.location.href = "<?php echo $this->getUrl('reseller') ?>";
+                }
+            });
+        }
+
+    }
+    
+    jQuery('#searchInput').keypress(function(e) {
+        if(e.which == 13) {
+            searchReseller();
+        }
+    });
+    
+    function searchReseller() {
+        jQuery('.orderOverlay').show();
+        jQuery('.loader').show();
+
+        var searchKeys = jQuery("#searchInput").val(); // get selected value
+        jQuery.ajax({
+            type: "POST",
+            url: "<?php echo $this->getUrl('reseller/index/customerfilter') ?>",
+            data: 'searchKeys=' + searchKeys,
+            success: function(response) {
+                var searchRes = jQuery('<div />').append(response).find('#getContent').html();
+                jQuery( ".customerTable" ).html( searchRes );
+                jQuery('.orderOverlay').hide();
+                jQuery('.loader').hide();
+            }
+        });
+    }
+    
+    function selectCustomerRadio(el) {
+        var currentRadioName = jQuery(el).attr('name');
+        
+        jQuery('input:radio[name=' + currentRadioName + ']').each(function(){
+            if(jQuery(this).is(':checked')){
+                jQuery(this).parent('.radioBtnWrap').addClass('radioBtnActive');
+                jQuery(this).parents('.custDataRow').addClass('acriveDataRow');
+            } else {
+                jQuery(this).parent('.radioBtnWrap').removeClass('radioBtnActive');
+                jQuery(this).parents('.custDataRow').removeClass('acriveDataRow');
+            }
+        });
+    }
+</script>
+<script>
+    jQuery(function(){
+        // bind change event to select
+        jQuery('#seller').bind('change', function () {
+            jQuery('.orderOverlay').show();
+            jQuery('.loader').show();
+            var searchSeller = jQuery(this).val(); // get selected value
+            jQuery.ajax({
+                type: "POST",
+                url: "<?php echo $this->getUrl('reseller/index/customerfilter') ?>",
+                data: 'searchSeller=' + searchSeller,
+                success: function(response) {
+                    var searchRes = jQuery('<div />').append(response).find('#getContent').html();
+                    jQuery( ".customerTable" ).html( searchRes );
+                    jQuery('.orderOverlay').hide();
+                    jQuery('.loader').hide();
+                }
+            });
+        });
+    });
+</script>

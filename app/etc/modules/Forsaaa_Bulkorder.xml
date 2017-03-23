@@ -1,0 +1,11 @@
+<config>
+    <modules>
+        <Forsaaa_Bulkorder>
+            <active>true</active>
+            <codePool>local</codePool>
+            <depends>
+                <Mage_Customer/>
+            </depends>
+        </Forsaaa_Bulkorder>
+    </modules>
+</config>

@@ -1,0 +1,25 @@
+<?php
+
+if(Mage::getSingleton('customer/session')->isLoggedIn()) {
+    $customerData = Mage::getSingleton('customer/session')->getCustomer();
+    $groupId = $customerData['group_id'];
+    $email = $customerData['email'];
+    $customer = Mage::getModel('customer/customer')->loadByEmail($email);
+    if ($customer->getCurrency() == 302) {
+       Mage::app()->setCurrentStore(4);
+       Mage::getSingleton('customer/session')->setWebsiteId(4);
+    } else {
+       Mage::app()->setCurrentStore(3);
+       Mage::getSingleton('customer/session')->setWebsiteId(3);
+    }
+}
+
+?>
+<div class="introWrapper">
+    <?php echo $this->getLayout()->createBlock('cms/block')->setBlockId('reseller_after_login_header')->toHtml(); ?>
+    <div class="enterButtonWrapper">
+        <button type="button" class="enterButton" onclick="window.location = '<?php echo Mage::getUrl('reseller'); ?>'">
+            <span class="enterIcon"></span><?php echo $this->__('Enter') ?>
+        </button>
+    </div>
+</div>

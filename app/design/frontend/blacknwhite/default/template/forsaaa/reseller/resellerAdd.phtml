@@ -1,0 +1,292 @@
+<?php
+$customerId = $_GET['value'];
+$customer = Mage::getModel('customer/customer')->load($customerId);
+$address_id = $customer->getDefaultBilling();
+$address = Mage::getModel('customer/address')->load($address_id);
+$countryName = Mage::getModel('directory/country')->load($address['country_id'])->getName();
+$groupId = Mage::getSingleton('customer/session')->getCustomerGroupId();
+$custId = Mage::getSingleton('customer/session')->getCustomerId();
+$customerDetails = Mage::getModel('customer/customer')->load($custId);
+?>
+<div class="col1Layout">
+    <h2 class="pageHeading"><?php echo $this->__('Customers') ?></h2>
+    
+    <button class="backButton2" onclick="window.location = '<?php echo Mage::getUrl('reseller/index/customerpage/'); ?>'">
+        <span class="glyphicon glyphicon-menu-left iconLeft"></span><span class="buttonText">
+            <?php echo $this->__('Back') ?>
+        </span>
+    </button>
+
+    <form action="<?php echo $this->getUrl('customeredit/index/add') ?>" method="post" id="customer-form" enctype="multipart/form-data">
+        <div class="buttonWrapper2">
+            <button class="saveButton" type="submit"><span class="buttonText" ><?php echo $this->__('Save') ?></span></button>
+        </div>
+        <div class="formWrapper">
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Company / Store name') ?></label>
+                <input type="text" name="firstname" class="txtBox required-entry" id="" value="<?php echo $customer['firstname']; ?>"  required />
+            </div>
+             <div class="frmfldRow">
+                <label class="formLbl headingLbl"><?php echo $this->__('Billing address') ?></label>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Street') ?></label>
+                <input type="text" name="street" class="txtBox" id="" value="<?php echo $address['street'] ?>" required/>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Zip code') ?></label>
+                <input type="text" name="postcode" class="txtBox" id="" value="<?php echo $address['postcode']; ?>" required/>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('City') ?></label>
+                <input type="text" name="city" class="txtBox" id="" value="<?php echo $address['city'] ?>"  required />
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl headingLbl"><?php echo $this->__('Shipping address') ?></label>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Street') ?></label>
+                <input type="text" name="shippingstreet" class="txtBox" id="" value="<?php echo $address['street'] ?>" required/>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Zip code') ?></label>
+                <input type="text" name="shippingpostcode" class="txtBox" id="" value="<?php echo $address['postcode']; ?>" required/>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('City') ?></label>
+                <input type="text" name="shippingcity" class="txtBox" id="" value="<?php echo $address['city'] ?>"  required />
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Reference') ?></label>
+                <input type="text" name="reference" class="txtBox" id="" value="<?php echo $customer['firstname'] ?>" />
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Phone') ?></label>
+                <input type="text" name="telephone" class="txtBox" id="" value="<?php echo $address['telephone'] ?>" />
+            </div>
+			
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Country code') ?></label>
+                <div class="selectWrap">
+                 <span class="sectedValue"></span>
+                    <select name="countrycodes" id="countrycodes" class="select" required>
+                        <?php
+                        $attributeCountryCodes = 'country_codes';
+                        $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCountryCodes);
+                        $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                        $countryCodes = $customer->getCountryCodes();
+                        
+                        foreach ($options as $option):?>
+                            <option class="slctOptn" <?php if ($option["value"] == $countryCodes): ?> selected <?php endif; ?> value="<?php echo $option["value"]; ?>"><?php echo $option["label"]; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Language code') ?></label>
+				<div class="selectWrap">
+                 <span class="sectedValue"></span>
+                    <select name="languagecode" id="languagecode" class="select" required>
+                        <?php
+                        $lCode = $customer->getLanguageCode();
+                        $attributeCodeLanguageCode = 'language_code';
+                        $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCodeLanguageCode);
+                        $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                        $languageCodeLabel = '';
+                        foreach ($options as $option):?>
+                           <option class="slctOptn" <?php if ($option["value"] == $lCode): ?> selected <?php endif; ?> value="<?php echo $option["value"]; ?>"><?php echo $option["label"]; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Customer type') ?></label>
+                <div class="selectWrap">
+                <span class="sectedValue"></span>
+                    <select name="customer_type" id="customer_type" class="select required-entry" required>
+                        <?php
+                        $customerType = $customer->getCustomerType();
+                        $customerDeType = 'customer_type';
+                        $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $customerDeType);
+                        $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                        foreach ($options as $option):?>
+                            <option class="slctOptn" <?php if ($option["value"] == $customerType): ?> selected <?php endif; ?> value="<?php echo $option["value"]; ?>"><?php echo $option["label"]; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <?php if($groupId == 5): ?>
+             <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Seller') ?></label>
+                 <?php
+                        $customerSeller = $customerDetails->getSeller();
+                        $customerAttrSeller = 'seller';
+                        $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $customerAttrSeller);
+                        $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                        $labelSeller = '';
+                        foreach ($options as $option){
+                            if ($option["value"] == $customerSeller){
+                                $labelSeller = $option["label"];
+                            }
+                        }
+                        
+                        ?>
+                        
+                        <input type="text" readonly style="  background: #e5e5e7 none repeat scroll 0 0;color: #828282;" name="seller" class="txtBox" id="seller" value="<?php echo $labelSeller ?>" lbl="<?php echo $customerSeller ?>" />
+             
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Manager / Agent') ?></label>
+                 <?php
+                        $customerAgent = $customerDetails->getAgent();
+                        $customerAttrAgent = 'agent';
+                        $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $customerAttrAgent);
+                        $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                        $labelAgent = '';
+                        foreach ($options as $option){
+                            if ($option["value"] == $customerAgent){
+                                $labelAgent = $option["label"];
+                            }
+                        }
+                        
+                        ?>
+                        <input type="text" readonly style="  background: #e5e5e7 none repeat scroll 0 0;color: #828282;" name="agent" class="txtBox" id="agent" value="<?php echo $labelAgent ?>" lbl="<?php echo $customerAgent ?>"  />
+             
+            </div>
+            <?php else: ?>
+             <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Seller') ?></label>
+                <div class="selectWrap">
+                <span class="sectedValue"></span>
+                    <select name="seller" id="seller" class="select" required>
+                    <option class="slctOptn" <?php if (!$customerSeller): ?> selected <?php endif; ?>value=""><?php echo $this->__('Select options'); ?></option>
+                        <?php
+                        $customerSeller = $customer->getSeller();
+                        $customerAttrSeller = 'seller';
+                        $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $customerAttrSeller);
+                        $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                        foreach ($options as $option):?>
+                            <option class="slctOptn" <?php if ($option["value"] == $customerSeller): ?> selected <?php endif; ?> value="<?php echo $option["value"]; ?>"><?php echo $option["label"]; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Manager / Agent') ?></label>
+                <div class="selectWrap">
+                <span class="sectedValue"></span>
+                    <select name="agent" id="agent" class="select" required>
+                    <option class="slctOptn" <?php if (!$customer->getAgent()): ?> selected <?php endif; ?>value=""><?php echo $this->__('Select options'); ?></option>
+                        <?php
+                        $customerAgent = $customer->getSeller();
+                        $customerAttrAgent = 'agent';
+                        $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $customerAttrAgent);
+                        $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                        foreach ($options as $option):?>
+                            <option class="slctOptn" <?php if ($option["value"] == $customerAttrAgent): ?> selected <?php endif; ?> value="<?php echo $option["value"]; ?>"><?php echo $option["label"]; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <?php endif; ?>
+           
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Email') ?></label>
+                <input type="text"  name="email" class="txtBox required-entry" id="" value="<?php echo $customer->getEmail(); ?>" required />
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Reg number') ?></label>
+                <input type="text" name="regNumber" class="txtBox" id="" value="<?php echo $customer['reg_number'] ?>" />
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('VAT number') ?></label>
+                <input type="text" name="taxVat" class="txtBox" id="" value="<?php echo $customer['taxvat'] ?>" />
+            </div>
+            <div class="frmfldRow">
+			<label class="formLbl"><?php echo $this->__('Currency') ?></label>
+				<div class="selectWrap">
+					<span class="sectedValue"></span>
+						<select name="currency" id="currency" class="select">
+                            <option value="" class="slctOptn">SEK</option>
+							<?php
+							$currency = $customer->getCurrency();
+							$attributeCodeCurrency = 'currency';
+							$attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCodeCurrency);
+							$options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+							$currencyLabel = '';
+							foreach ($options as $option):?>
+								<option class="slctOptn" <?php if ($option["value"] == $currency): ?> selected <?php endif; ?> value="<?php echo $option["value"]; ?>"><?php echo $option["label"]; ?></option>
+							<?php endforeach; ?>
+							
+						</select>
+                </div>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Terms of payment') ?></label>
+                <div class="selectWrap">
+                <span class="sectedValue"></span>
+                    <select name="paymentTerms" id="paymentTerms" class="select required-entry" required>
+                        <?php
+                        $paymentTerms = $customer->getPaymentTerms();
+                        $attributeCodePaymentTerms = 'payment_terms';
+                        $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCodePaymentTerms);
+                        $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                        foreach ($options as $option):?>
+                            <option class="slctOptn" <?php if ($option["value"] == $paymentTerms): ?> selected <?php endif; ?> value="<?php echo $option["value"]; ?>"><?php echo $option["label"]; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Customer discount') ?></label>
+                <input type="text" name="" class="txtBox" id="" value="<?php echo '-' ?>" />
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Delivery terms') ?></label>
+                 <div class="selectWrap">
+                    <span class="sectedValue"></span>
+                    <select name="delivery_terms" id="delivery_terms" class="select required-entry" required>
+                        <?php
+                        $deliveryTerms = $customer->getDeliveryTerms();
+                        $attributeCodedterms = 'delivery_terms';
+                        $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCodedterms);
+                        $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                        foreach ($options as $option):?>
+                            <option class="slctOptn" <?php if ($option["value"] == $deliveryTerms): ?> selected <?php endif; ?> value="<?php echo $option["value"]; ?>"><?php echo $option["label"]; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Customer transportation') ?></label>
+                <div class="selectWrap">
+                <span class="sectedValue"></span>
+                    <select name="customer_transportation" id="customer_transportation" class="select required-entry" required>
+                        <?php
+                        $transportation = $customer->getCustomerTransportation();
+                        $attributeCodeTrasportation = 'customer_transportation';
+                        $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCodeTrasportation);
+                        $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                        foreach ($options as $option):?>
+                            <option class="slctOptn" <?php if ($option["value"] == $transportation): ?> selected <?php endif; ?> value="<?php echo $option["value"]; ?>"><?php echo $option["label"]; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+             <div class="frmfldRow">
+                <label class="formLbl"><?php echo $this->__('Email Confirmation') ?></label>
+                <div class="selectWrap">
+                <span class="sectedValue"></span>
+                    <select name="customer_emailconfirm" id="customer_emailconfirm" class="select">
+                         <option class="slctOptn"value="1"><?php echo $this->__('No') ?></option>
+                         <option class="slctOptn" value="2"><?php echo $this->__('Yes') ?></option>
+                    </select>
+                </div>
+                <div class="fieldInfo">
+                    <?php echo $this->__('Mail to customer - account has been created.') ?>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>

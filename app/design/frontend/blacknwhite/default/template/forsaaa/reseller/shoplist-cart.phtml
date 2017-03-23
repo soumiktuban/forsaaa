@@ -1,0 +1,498 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category    design
+ * @package     rwd_default
+ * @copyright   Copyright (c) 2014 Magento Inc. (http://www.magentocommerce.com)
+ * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+/**
+ * Product view template
+ *
+ * @see Mage_Catalog_Block_Product_View
+ * @see Mage_Review_Block_Product_View
+ */
+?>
+<?php $_helper = $this->helper('catalog/output'); ?>
+<?php $_product = $this->getProduct(); ?>
+
+<div class="row">
+    <div id="messages_product_view"><?php echo $this->getMessagesBlock()->getGroupedHtml() ?></div>
+    <div class="sidebarWrapper">
+        <form class="sidebarInner" action="<?php echo $this->getUrl('reseller/order/add') ?>" method="post" id="form-reseller">  
+            <div class="fixeHeight">
+                <div class="sideBarHeading"><?php echo $_helper->productAttribute($_product, $_product->getName(), 'name') ?></div>
+                <div class="sliderImageWrap">
+                    <?php
+                    $_images = $_product->getMediaGalleryImages();
+                    if (count($_images) > 1) :
+                        ?>
+                        <div data-ride="carousel" class="carousel slide" id="myCarousel">
+                            <!-- Indicators -->
+                            <ol class="carousel-indicators">
+                                <?php for ($i = 0; $i < count($_images); $i++) : ?>
+                                    <li data-slide-to="<?php echo $i ?>" data-target="#myCarousel" class="<?php if ($i == 0) echo 'active'; ?>"></li>
+                                <?php endfor; ?>
+                            </ol>
+                            <div role="listbox" class="carousel-inner">
+                                <?php
+                                if ($_images) :
+                                    $i = 0;
+                                    foreach ($_images as $_image):
+                                        $i++;
+                                        ?>
+                                        <div class="item <?php if ($i == 1) echo 'active' ?>">
+                                            <a href="<?php echo $this->helper('catalog/image')->init($_product, 'thumbnail', $_image->getFile()); ?>" rel="lightbox" ><img  alt="<?php echo $this->htmlEscape($_image->getLabel()); ?>" src="<?php echo $this->helper('catalog/image')->init($_product, 'thumbnail', $_image->getFile())->resize(201, 178); ?>"></a>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                            <a data-slide="prev" role="button" href="#myCarousel" class="left carousel-control">
+                                <span aria-hidden="true" class="glyphicon glyphicon-chevron-left"></span>
+                                <span class="sr-only">Previous</span>
+                            </a>
+                            <a data-slide="next" role="button" href="#myCarousel" class="right carousel-control">
+                                <span aria-hidden="true" class="glyphicon glyphicon-chevron-right"></span>
+                                <span class="sr-only">Next</span>
+                            </a>
+                        </div>
+                    <?php else : ?>
+                        <a href="<?php echo Mage::helper('catalog/image')->init($_product, 'thumbnail'); ?>" rel="lightbox" > <img src="<?php echo Mage::helper('catalog/image')->init($_product, 'thumbnail')->resize(201, 179); ?>" height="179" width="201" /> </a>
+                    <?php endif; ?>
+                </div>
+                <?php echo $this->getBlockHtml('formkey') ?>
+                <div class="priceWrap">
+                    <?php if ($_product->getMsrp()) : ?>
+                        <div class="col-md-6 col-sm-6 costPrice">
+                            <span><?php echo $this->__('Cost price') ?>:</span><span class="priceAmount"><?php echo Mage::helper('core')->formatPrice($_product->getPrice(), true); ?></span>
+                        </div>
+                    <?php endif; ?>
+                    <div class="col-md-6 col-sm-6 rrp">
+                        <span><?php echo $this->__('Store price') ?>:</span><span class="priceAmount"><?php echo Mage::helper('core')->formatPrice($_product->getMsrp(), true); ?></span>
+                    </div>
+
+                </div>
+                <div class="priceWrap">
+                    <?php if ($_product->getProductGroup()) : ?>
+                        <div class="col-md-6 col-sm-6 costPrice">
+                            <span><?php echo $this->__('Collection') ?>:</span><span class="priceAmount"><?php echo $_product->getAttributeText('product_group'); ?></span>
+                        </div>
+                    <?php endif; ?>
+                    <div class="col-md-6 col-sm-6 rrp">
+                        <span><?php echo $this->__('SkuNo') ?>:</span><span class="priceAmount"><?php echo $_product->getSku() ?></span>
+                    </div>
+                </div>
+                <div class="priceWrap">
+                    <div class="col-md-6 col-sm-6 costPrice">
+                        <span><?php echo $this->__('Stock status') ?>:</span><span class="priceAmount">
+                        <?php 
+                            $prodStockStatus = true;
+                            if ($_product->getTypeId() == "configurable") {
+                                $childProducts = Mage::getModel('catalog/product_type_configurable')->getUsedProducts(null, $_product);
+                                foreach ($childProducts as $childProduct) {
+                                    if ($childProduct->getStockStatus() == 2) {
+                                        $prodStockStatus = false;
+                                    }
+                                }
+                                if ($prodStockStatus) {
+                                    echo $this->__('Stock');
+                                } else {
+                                    echo $this->__('Reserve'); 
+                                }
+                            } else {
+                                if ($_product->getStockStatus() == 1) {
+                                    echo $this->__('Stock');
+                                } else if ($_product->getStockStatus() == 2) {
+                                    $prodStockStatus = false;
+                                    echo $this->__('Reserve'); 
+                                } else {}
+                            }
+                            
+                        ?>
+                        </span>
+                    </div>
+                    <div class="col-md-6 col-sm-6">
+                        <div class="deleveryInfo">
+                             <?php if ($_product->getStockStatus() == 1) : ?>
+                                <div class="txt"><span class="glyphicon glyphicon-truck"></span> <?php echo $this->__('Delivery time 2-3 days') ?> </div>
+                             <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                
+                <?php if ($_product->getEan()) : ?>
+                    <div class="priceWrap">
+                        <div class="col-md-12 col-sm-12 costPrice">
+                            <span><?php echo $this->__('EAN') ?>:</span><span class="priceAmount"><?php echo $_product->getEan() ?></span>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                
+                <div class="stockstatus">
+                    <div class="col-md-12 col-sm-12">
+                        <?php echo $this->getLayout()->createBlock('cms/block')->setBlockId('stockstatus')->toHtml(); ?>
+                    </div>
+                </div>
+                
+                <div class="no-display">
+                    <input type="hidden" name="product" value="<?php echo $_product->getId() ?>" />
+                    <input type="hidden" name="related_product" id="related-products-field" value="" />
+                </div>
+                <?php if ($_product->getTypeID() != "simple") : ?>
+                
+                    <div class="addedProduct">
+                        <div class="col-md-12 col-sm-12">
+                            <div class="col-md-4 col-sm-5">
+                                <div class="row heading">
+                                    <?php echo 'SKU'; ?>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-3">
+                                <div class="row heading">
+                                    <?php echo $this->__('Size'); ?>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-2">
+                                <div class="row heading">
+                                    <?php echo $this->__('Qty'); ?>
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-sm-2 stateHeading">
+                                <div class="row heading">
+                                    <?php echo $this->__('state'); ?>
+                                </div>
+                            </div>
+                            <?php
+                            $childProducts = Mage::getModel('catalog/product_type_configurable')->getUsedProducts(null, $_product);
+
+                            $read = Mage::getSingleton('core/resource')->getConnection('core_read');
+                            $sql = "SELECT `attribute_id` FROM  `catalog_product_super_attribute` WHERE  `product_id` = " . $_product->getId() . "";
+                            $entityid = $read->fetchAll($sql);
+                            $tempentityAttributeId = '';
+                            foreach ($entityid as $key) {
+                                foreach ($key as $key1 => $value) {
+                                    $tempentityAttributeId = $value;
+                                }
+                            }
+                            
+                            $attribute_code = Mage::getModel('eav/entity_attribute')->load($tempentityAttributeId)->getAttributeCode();
+                            foreach ($childProducts as $child) :
+                                ?>
+                                <div class="col-md-4 col-sm-5">
+                                    <div class="row content">
+                                        <div class="sku">
+                                            <div class="inner"><?php echo $child->getSku() ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-3">
+                                    <div class="row content">
+                                        <div class="size">
+                                            <div class="inner"><?php echo $child->getAttributeText($attribute_code) ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-sm-2">
+                                    <div class="row content">
+                                        <div class="qty">
+                                            <?php 
+                                                if ($child->isSalable() || ($child->getStockItem()->getBackorders() == 1 && $child->getStockItem()->getIsInStock() == 1 )) : 
+                                                    $storeId = Mage::app()->getStore()->getStoreId();
+                                                    $read = Mage::getSingleton('core/resource')->getConnection('core_read');
+                                                    $sql = "SELECT  value FROM `catalog_product_entity_varchar` where `entity_id` = ".$child->getId()." and `attribute_id` = 232 and `store_id` = " . $storeId;
+                                                    
+                                                    $entityid = $read->fetchAll($sql);
+                                                    $tempId = '';
+                                                    foreach ($entityid as $key) {
+                                                        foreach ($key as $key1 => $value) {
+                                                            $tempId = $value;
+                                                        }
+                                                    }
+                                                    if(!$tempId){
+                                                    $read = Mage::getSingleton('core/resource')->getConnection('core_read');
+                                                    $sql = "SELECT  value FROM `catalog_product_entity_varchar` where `entity_id` = ".$child->getId()." and `attribute_id` = 232 ";
+                                                    
+                                                    $fetch = $read->fetchAll($sql);
+                                                    $tempMinQty = '';
+                                                    foreach ($fetch as $key) {
+                                                        foreach ($key as $key1 => $value) {
+                                                            $tempMinQty = $value;
+                                                        }
+                                                    }
+                                                    $tempId = $tempMinQty;
+                                                    }
+                                                    $minOrder = $tempId;
+                                                    if (!$minOrder) {
+                                                        $minOrder = $child->getStockItem()->getMinSaleQty();
+                                                    }
+                                            ?>
+                                                <input type="text" maxqty="<?php echo $child->getStockItem()->getMaxSaleQty(); ?>" 
+                                                    name="products[<?php echo $child['id']; ?>]" 
+                                                    class="form-control qty input-qty-prod input-mini sc-arrows-input sc-countable scteamsales-option-input innerQty" 
+                                                    childid="<?php echo $child->getId(); ?>"
+                                                    configProdId = "<?php echo $_product->getId() ?>"
+                                                    attributeId = "<?php echo $tempentityAttributeId ?>"
+                                                    sizeCode = "<?php echo $child[$attribute_code] ?>"
+                                                    minQty="<?php echo $minOrder ?>"
+                                                    value="0" 
+                                                    onkeypress="return ((event.charCode >= 48 && event.charCode <= 57) || event.charCode == 8) " />
+                                                    <div class="innerQtyAddLess">
+                                                        <div class="addBtn" onclick="addLessQty(this, 'plus')"><span class="glyphicon glyphicon-plus"></span></div>
+                                                        <div class="lessBtn" onclick="addLessQty(this, 'minus')"><span class="glyphicon glyphicon-minus"></span></div>
+                                                    </div>
+                                            <?php else: ?>
+                                                <input type="text" maxqty="<?php echo $child->getStockItem()->getMaxSaleQty(); ?>" 
+                                                    name="products[<?php echo $child['id']; ?>]" 
+                                                    class="form-control qty input-qty-prod input-mini sc-arrows-input sc-countable scteamsales-option-input innerQty" 
+                                                    disabled="disabled"
+                                                    value="0" />
+                                                    <div class="innerQtyAddLess">
+                                                        <div class="addBtn disabled"><span class="glyphicon glyphicon-plus"></span></div>
+                                                        <div class="lessBtn disabled"><span class="glyphicon glyphicon-minus"></span></div>
+                                                    </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-sm-2 stateData">
+                                    <div class="row">
+                                        <?php 
+                                            $saleIcon = "";
+                                            if ($child->isSalable() && $child->getStockItem()->getQty() > 0) {
+                                                $saleIcon = $this->getSkinUrl("images/saleable.png");
+                                            } else {
+                                                if ($child->getStockItem()->getBackorders() == 1 && $child->getStockItem()->getIsInStock() == 1 ) {
+                                                    $saleIcon = $this->getSkinUrl("images/backorder.png");
+                                                } else {
+                                                    $saleIcon = $this->getSkinUrl("images/outofstock.png");
+                                                }
+                                            }
+                                        ?>
+                                        <div class="leftIcon"><img src="<?php echo $saleIcon ?>" /></div>
+                                        <div class="rightIcon" onmouseover="showDelivaryTime(this)" onmouseout="hideDelivaryTime(this)"><img src="<?php echo $this->getSkinUrl('images/delivaryDate.png') ?>" /></div>
+                                        <div class="deliveryDatePopup">
+                                            <?php echo $child->getEstimateDelivery() ?>
+                                        </div>
+                                    </div>     
+                                </div>
+                            <?php endforeach; ?>    
+                        </div>
+                    </div>
+                <?php else: ?>
+                <div class="col-md-12 simplePrdQtyWrap">
+                    <div class="addedProduct">
+                    <div class="col-md-5 col-sm-5">
+                        <div class="row heading">
+                            <?php echo 'SKU'; ?>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-4">
+                        <div class="row heading">
+                            <?php echo $this->__('Qty'); ?>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-3 stateHeading">
+                        <div class="row heading">
+                            <?php echo $this->__('state'); ?>
+                        </div>
+                    </div>
+                    <div class="col-md-5 col-sm-5">
+                        <div class="row content">
+                            <div class="sku">
+                                <div class="inner"><?php echo $_product->getSku() ?></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-sm-4">
+                        <div class="row">
+                            <?php
+                                $minOrder = $_product->getMinSaleQtyReseller();
+                                if (!$minOrder) {
+                                    $minOrder = $_product->getStockItem()->getMinSaleQty();
+                                }
+                            ?>
+                            <input type="text" name="qty" onBlur="qtyCheck(this)" configProdId = "<?php echo $_product->getId() ?>" id="qty" maxlength="12" value="0" minQty="<?php echo (Mage::getSingleton('customer/session')->getCustomerGroupId() == '4') ? '1' : $minOrder ?>" title="<?php echo $this->__('Qty') ?>" class="input-text innerQty" onkeypress="return ((event.charCode >= 48 && event.charCode <= 57) || event.charCode == 8) " />
+                            <div class="innerQtyAddLess">
+                                <div class="addBtn" onclick="addLessQty(this, 'plus')"><span class="glyphicon glyphicon-plus"></span></div>
+                                <div class="lessBtn" onclick="addLessQty(this, 'minus')"><span class="glyphicon glyphicon-minus"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-3 stateData">
+                        <div class="row">
+                            <?php 
+                                $saleIcon = "";
+                                if ($_product->isSalable() && $_product->getStockItem()->getQty() > 0) {
+                                    $saleIcon = $this->getSkinUrl("images/saleable.png");
+                                } else {
+                                    if ($_product->getStockItem()->getBackorders() == 1 && $_product->getStockItem()->getIsInStock() == 1 ) {
+                                        $saleIcon = $this->getSkinUrl("images/backorder.png");
+                                    } else {
+                                        $saleIcon = $this->getSkinUrl("images/outofstock.png");
+                                    }
+                                }
+                            ?>
+                            <div class="leftIcon"><img src="<?php echo $saleIcon ?>" /></div>
+                            <div class="rightIcon" onmouseover="showDelivaryTime(this)" onmouseout="hideDelivaryTime(this)"><img src="<?php echo $this->getSkinUrl('images/delivaryDate.png') ?>" /></div>
+                            <div class="deliveryDatePopup">
+                                <?php echo $_product->getEstimateDelivery() ?>
+                            </div>
+                        </div>     
+                    </div>
+                </div>
+                </div>
+                <?php endif; ?>
+                <div class="col-md-12 errorForMinQry"></div>
+                
+                <div class="col-md-12 col-sm-12">
+                    <button id="addToCartProduct" type="button" title="<?php echo $this->__('Add to cart') ?>" class="addButton" prodType="<?php echo $_product->getTypeID() ?>" onclick="addItemsToCart()">
+                    <?php
+//                        $stockStatus = $_product->getStockStatus();
+                        if($prodStockStatus): 
+                    ?>
+                        <span class="glyphicon glyphicon-shopping-cart"></span><?php echo $this->__('Order') ?>
+                    <?php else: ?>
+                        <span class="glyphicon glyphicon-shopping-cart"></span><?php echo $this->__('Reserve') ?>
+                    <?php  endif; ?>
+                    </button>
+                </div>
+                <div class="col-md-12 col-sm-12">
+                    <div class="row">
+                        <div class="prdDescriptionHeading" onclick="showShortDesc()">
+                            <div class="col-md-12">
+                                <?php echo $this->__('Product description'); ?>
+                                <span class="glyphicon glyphicon-triangle-bottom"></span>
+                            </div>
+                        </div>
+                        <div class="prdDescription">
+                            <div class="col-md-12 col-sm-12">
+                                <?php echo $_product->getShortDescription(); ?>
+                            </div>
+                        </div>
+
+                        <?php if (!$_product->isGrouped()) : ?>
+
+                            <?php
+                            $storeGuide = "sizeguide_bloclist";
+                            $washingGuide = "washingcare_bloclist";
+                            if (Mage::app()->getStore()->getCode() == "retailerenglishview") {
+                                $storeGuide .= "_en";
+                                $washingGuide .= "_en";
+                            }
+                            $sizeGuide = Mage::getModel('cms/block')->load($_product[$storeGuide])->getIdentifier();
+                            if ($sizeGuide != ''):
+                                ?>
+                                <div class="prdSizeGuideHeading">
+                                    <div class="col-md-12 col-sm-12" onclick="showSizeDesc()">
+                                        <?php echo $this->__('Size guide'); ?>
+                                        <span class="glyphicon glyphicon-triangle-bottom"></span>
+                                    </div>
+                                </div>
+                                <div class="prdSizeGuide">
+                                    <div class="col-md-12 col-sm-12">
+                                        <?php echo $this->getLayout()->createBlock('cms/block')->setBlockId(Mage::getModel('cms/block')->load($_product[$storeGuide])->getIdentifier())->toHtml(); ?>
+                                    </div>
+                                </div>
+                                <!--div class="deleveryInfo">
+                                    <div class="col-md-12 col-sm-12">
+                                        <div class="txt"><span class="glyphicon glyphicon-truck"></span> Levtid 2-3 arbetsdagar </div>
+                                        <div class="txt"><span class="glyphicon glyphicon-info-sign"></span> Minimum beställning 2st per storlek </div>
+                                    </div>
+                                </div-->
+                                <?php
+                            endif;
+                            $washingCare = Mage::getModel('cms/block')->load($_product[$washingGuide])->getIdentifier();
+                            if ($washingCare != ''):
+                                ?>
+                                <div class="prdDescriptionHeading" onclick="showWashingDesc()">
+                                    <div class="col-md-12">
+                                        <?php echo $this->__('Washing & care instructions'); ?>
+                                        <span class="glyphicon glyphicon-triangle-bottom"></span>
+                                    </div>
+                                </div>
+                                <div class="washingDescription" style="display:none" >
+                                    <div class="col-md-12 col-sm-12">
+                                        <?php echo $this->getLayout()->createBlock('cms/block')->setBlockId(Mage::getModel('cms/block')->load($_product[$washingGuide])->getIdentifier())->toHtml(); ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            
+        </form>
+    </div>
+<!--
+    <script type="text/javascript">
+        //<![CDATA[
+        var productAddToCartForm = new VarienForm('product_addtocart_form');
+        productAddToCartForm.submit = function(button, url) {
+            if (this.validator.validate()) {
+                var form = this.form;
+                var oldUrl = form.action;
+
+                if (url) {
+                    form.action = url;
+                }
+                var e = null;
+                try {
+                    this.form.submit();
+                } catch (e) {
+                }
+                this.form.action = oldUrl;
+                if (e) {
+                    throw e;
+                }
+
+                if (button && button != 'undefined') {
+                    button.disabled = true;
+                }
+            }
+        }.bind(productAddToCartForm);
+
+        productAddToCartForm.submitLight = function(button, url) {
+            if (this.validator) {
+                var nv = Validation.methods;
+                delete Validation.methods['required-entry'];
+                delete Validation.methods['validate-one-required'];
+                delete Validation.methods['validate-one-required-by-name'];
+                // Remove custom datetime validators
+                for (var methodName in Validation.methods) {
+                    if (methodName.match(/^validate-datetime-.*/i)) {
+                        delete Validation.methods[methodName];
+                    }
+                }
+
+                if (this.validator.validate()) {
+                    if (url) {
+                        this.form.action = url;
+                    }
+                    this.form.submit();
+                }
+                Object.extend(Validation.methods, nv);
+            }
+        }.bind(productAddToCartForm);
+        //]]>
+    </script>
+-->
+</div>
+

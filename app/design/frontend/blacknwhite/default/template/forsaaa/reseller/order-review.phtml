@@ -1,0 +1,302 @@
+<div class="orderPopupWrap">
+    <div class="popupMain">
+        <div class="popupMainInner">
+            <header class="popupHeader">
+                <ul class="orderProcessTabs">
+                    <li class="orderProcessTab activeTab" onclick="resellerOrderBack()">
+                        <span class="ordrItemDelvrIcon">&nbsp;</span><span class="tabName"><?php echo $this->__('Items &amp; Deliveries') ?></span>
+                    </li>
+                    <li class="orderProcessTab " onclick="showOrderItems()">
+                        <span class="ordDtlsIcon activeIcon">&nbsp;</span>
+                        <span class="tabName activeName"><?php echo $this->__('Order details'); ?></span>
+                    </li>
+                </ul>
+                <ul class="popHeaderIcons">
+                    <li class="remove" onclick="deleteAllItemsFromCart()"></li>
+                    <li class="closePopup" onclick="closeButton()"></li>
+                </ul>
+            </header>
+            <div class="orderContentWrap">
+                <?php
+                if (!Mage::getSingleton('core/session')->getResellerId()) {
+                    $customer = Mage::getSingleton('customer/session')->getCustomer();
+                } else {
+                    $customer = Mage::getModel('customer/customer')->load(Mage::getSingleton('core/session')->getResellerId());
+                }
+
+                $lCode = $customer->getPaymentTerms();
+                $attributeCodeLanguageCode = 'payment_terms';
+                $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCodeLanguageCode);
+                $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                $languageCodeLabel = '';
+                if ($lCode) {
+                    foreach ($options as $option) {
+                        if ($option["value"] == $lCode) {
+                            $languageCodeLabel = $option["label"];
+                        }
+                    }
+                }
+
+                $deliveryTerms = $customer->getDeliveryTerms();
+                $attributeCodedterms = 'delivery_terms';
+                $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCodedterms);
+                $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                $deliveryTermsLabel = '';
+                if ($deliveryTerms) {
+                    foreach ($options as $option) {
+                        if ($option["value"] == $deliveryTerms) {
+                            $deliveryTermsLabel = $option["label"];
+                        }
+                    }
+                }
+
+                $transportation = $customer->getCustomerTransportation();
+                $attributeCodeTrasportation = 'customer_transportation';
+                $attributeDetailsFirst = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCodeTrasportation);
+                $options = $attributeDetailsFirst->getSource()->getAllOptions(false);
+                $transportationLabel = '';
+                if ($transportation) {
+                    foreach ($options as $option) {
+                        if ($option["value"] == $transportation) {
+                            $transportationLabel = $option["label"];
+                        }
+                    }
+                }
+
+                $quote = Mage::getModel('checkout/session')->getQuote();
+                $address = $quote->getShippingAddress();
+
+                ?>
+                <div class="orderContent ordDtlsCont"  style="display:none">
+                    <div class="ordDtlsContBody">
+                        <label class="refLbl" for="refno"><?php echo $this->__('Reference') ?>#:</label>
+                        <input type="text" name="refno" class="txtBox refNoTxtBx" id="refno" value="<?php echo $customer->getReference() ?>" />
+                        <div class="customerNumber">
+                            <span class="text"><?php echo $this->__('Customer') ?>:</span> 
+                            <span class="custNo"><?php echo $customer->getName(); ?></span>
+                        </div>
+
+                        <?php echo $this->getLayout()->createBlock('cms/block')->setBlockId('order_review_info')->toHtml(); ?>
+                        <?php
+                        $attributeCode = 'seller';
+                        $attributeDetailsSecond = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCode);
+                        $optionsAll = $attributeDetailsSecond->getSource()->getAllOptions(false);
+                        $valueSeller = '';
+                        foreach ($optionsAll as $option) {
+                            if ($option["value"] == $customer->getSeller()) {
+                                $valueSeller = $option["label"];
+                            }
+                        }
+                        ?>
+                        <div class="agentListWrap">
+                            <div class="agentNameWrap">
+                                <div class="agentName"><span><?php echo $this->__('Seller') ?>:</span><?php echo $valueSeller; ?></div>
+                            </div>
+                            <?php
+                            $attributeCodeAgent = 'agent';
+                            $attributeDetailsAgent = Mage::getSingleton("eav/config")->getAttribute("customer", $attributeCodeAgent);
+                            $optionsAllAgent = $attributeDetailsAgent->getSource()->getAllOptions(false);
+                            $valueAgent = '';
+                            foreach ($optionsAllAgent as $optionsAllAgentEach) {
+                                if ($optionsAllAgentEach["value"] == $customer->getAgent()) {
+                                    $valueAgent = $optionsAllAgentEach["label"];
+                                }
+                            }
+                            if ($valueAgent) :
+                                ?>
+
+                                <div class="agentNameWrap">
+                                    <div class="agentName"><span><?php echo $this->__('Agent') ?>:</span><?php echo $valueAgent; ?></div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <input name="email" type="email" placeholder="Email *" class="email" value="<?php echo $customer->getEmail() ?>" />
+                        <textarea class="notes" name="ordercomment" id="ordercomment" placeholder="<?php echo $this->__('Notes *') ?>"></textarea>
+                        <?php
+                            $currentUrl = $this->helper('core/url')->getCurrentUrl();
+                            $linkUrl='';
+                            if(strpos($currentUrl, 'retailer_se') >= 1){
+                                $linkUrl= Mage::getBaseUrl().'kopvillkorb2b_se/';
+                            } elseif(strpos($currentUrl, 'retailer_en') >= 1){
+                                $linkUrl= Mage::getBaseUrl().'termsandconditions_b2b_en/';
+                            }
+                        ?>
+                        <p class="termsChkbx"><input type="checkbox" value="Yes" id="termsCondition" /><label><?php echo $this->__('I accept all ') ?><a href="<?php echo $linkUrl; ?>"><?php echo $this->__('terms and conditions.') ?></a></label></p>
+                    </div>
+                    <?php
+                    $quote = Mage::getModel('checkout/session')->getQuote();
+                    $quoteData = $quote->getData();
+                    $grandTotal = $quoteData['grand_total'];
+                    ?>
+                    <footer class="ordrItemDelvrContFooter" style="display:none;">
+                        <div class="totalRow">
+                            <div class="termsNTransport">
+                                <p><?php echo $this->__('Terms and Conditions'); ?>: <span><?php echo $deliveryTermsLabel ?></span></p><br>
+                                <p><?php echo $this->__('Customer transportation'); ?>: <span><?php echo $transportationLabel ?></span></p>
+                            </div>
+                            <div class="termsNTransport">
+                                <p><?php echo $this->__('Terms of payment'); ?>: <span>
+                                    <?php echo $languageCodeLabel ?></span></p>
+                            </div>
+
+                            <div class="totalWrap">
+                                <span><?php echo $this->__('Sum') ?>:&nbsp; <?php echo Mage::helper('core')->formatPrice($grandTotal, true); ?></span>
+                            </div>
+                        </div>
+                        <div class="backButton">
+                            <a class="button" href="javascript:void(0)" onclick="resellerOrderBack()">
+                                <span class="glyphicon glyphicon-menu-left"></span><span class="buttonText"><?php echo $this->__('Back') ?></span>
+                            </a>
+                        </div>
+                        <div class="submitOrderButton">
+                            <?php $isMinAmtActive= (int) Mage::getStoreConfig('sales/minimum_order/amount', Mage::app()->getStore()->getId()); ?>
+                            <?php if ($grandTotal >= $isMinAmtActive) : ?>
+                                <a id="placeOrderBtn" href="javascript:void(0)" class="button" onclick="placeResellerOrderAction()">
+                                    <span class="glyphicon glyphicon-ok"></span><span class="buttonText"><?php echo $this->__('Submit order') ?></span>
+                                </a>
+                            <?php else : ?>
+                                <a href="javascript:void(0)" class="button">
+                                    <span class="glyphicon glyphicon-ok"></span><span class="buttonText">
+                                        <?php echo Mage::getStoreConfig('sales/minimum_order/description', Mage::app()->getStore()->getId()); ?>
+                                    </span>
+                                </a>
+                            <?php endif; ?>
+                            <script>
+                                function hitPlaceOrder(){
+                                    if(document.getElementById('termsCondition').checked){
+                                        console.log('checked');
+                                        placeResellerOrder()                   
+                                    } else{
+                                        console.log('not checked');
+                                        alert('<?php echo $this->__('Please accept terms and condition.') ?>');
+                                    }
+                                }
+                                
+                            </script>
+                        </div>
+                    </footer>
+                    
+                </div>
+                <div class="orderContent ordrItemDelvrCont">
+                    <div class="ordrItemDelvrContBody">
+                        <div class="fullWidth">
+                            <?php Mage::getSingleton("core/session")->setConfigProductItem(''); ?>
+                            <?php $cartItems = $this->getCollection(); ?>
+                            <?php foreach ($cartItems as $_item): ?>
+                                <?php
+                                if (($_item->getProductType() == "simple" && $_item->getParentItemId() == null)
+                                    || ($_item->getProductType() == "configurable")
+                                ) {
+                                    echo $this->getItemHtml($_item);
+                                }
+                                ?>
+                            <?php endforeach ?>
+                        </div>
+                        <?php echo $this->getChildHtml('cart.pager'); ?>
+                    </div>
+                    <?php if (count($cartItems) > 0) : ?>
+                    </div>
+                <?php endif ?>
+                <div class="filterWrap">
+                    <?php
+                    $items = Mage::getSingleton('checkout/session')->getQuote()->getAllItems();
+                    
+                    $itemTotalCount = 0;
+                    $itemFirstQty = 0;
+                    $itemSecondQty = 0;
+                    foreach ($items as $item) {
+                        if ($item->getProductType() == "configurable") {
+                            $qyy = $item->getQty();
+                        }
+                        if ($item->getProductType() == "simple") {
+                            $_product = Mage::getModel('catalog/product')->loadByAttribute('sku', $item->getSku());
+                            if ($_product->getStockStatus() == 1) {
+                                if ($qyy == 0) {
+                                    $qyy = $item->getQty();
+                                }
+                                $itemFirstQty += $qyy;
+                            } elseif ($_product->getStockStatus() == 2) {
+                                if ($qyy == 0) {
+                                    $qyy = $item->getQty();
+                                }
+                                $itemSecondQty += $qyy;
+                            } else {
+                                
+                            }
+                        }
+                        if ($item->getProductType() == "simple" && $qyy > 0) {
+                            $qyy = 0;
+                        }
+                    }
+                    $itemTotalCount = $itemFirstQty + $itemSecondQty;
+                    ?>
+                    <div class="filterItem itemAll active" onclick="filterItemInCart(this)">
+                        <div class="triangle"></div>
+                        <div class="calIcon calIconActive">
+                            <img src="<?php echo $this->getSkinUrl('images/calenderActive.png'); ?>" alt="" class="img-responsive" >
+                            <div class="countItems"><?php echo $itemTotalCount ?></div>
+                        </div>
+                        <div class="calIcon calIconInactive">
+                            <img src="<?php echo $this->getSkinUrl('images/calenderInactive.png'); ?>" alt="" class="img-responsive" >
+                            <div class="countItems"><?php echo $itemTotalCount ?></div>
+                        </div>
+                        <div class="itemText"><?php echo $this->__('All products') ?></div>
+                    </div>
+                    <?php if ($itemFirstQty > 0) : ?>
+                        <div class="filterItem itemOne inactive" stockid="immediate" onclick="filterItemInCart(this)">
+                            <div class="triangle"></div>
+                            <div class="calIcon calIconActive">
+                                <img src="<?php echo $this->getSkinUrl('images/calenderActive.png'); ?>" alt="" class="img-responsive" >
+                                <div class="countItems"><?php echo $itemFirstQty; ?></div>
+                            </div>
+                            <div class="calIcon calIconInactive">
+                                <img src="<?php echo $this->getSkinUrl('images/calenderInactive.png'); ?>" alt="" class="img-responsive" >
+                                <div class="countItems"><?php echo $itemFirstQty; ?></div>
+                            </div>
+                            <div class="itemText"><?php echo $this->__('Immediate delivery'); ?></div>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($itemSecondQty > 0) : ?>
+                        <div class="filterItem itemTwo inactive" stockid="reserverad" onclick="filterItemInCart(this)">
+                            <div class="triangle"></div>
+                            <div class="calIcon calIconActive">
+                                <img src="<?php echo $this->getSkinUrl('images/calenderActive.png'); ?>" alt="" class="img-responsive" >
+                                <div class="countItems"><?php echo $itemSecondQty; ?></div>
+                            </div>
+                            <div class="calIcon calIconInactive">
+                                <img src="<?php echo $this->getSkinUrl('images/calenderInactive.png'); ?>" alt="" class="img-responsive" >
+                                <div class="countItems"><?php echo $itemSecondQty; ?></div>
+                            </div>
+                            <div class="itemText"><?php echo $this->__('Reserverad order'); ?></div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
+            <footer class="ordContFooter">
+                <div class="totalRow">
+                    <div class="termsNTransport">
+                        <p><?php echo $this->__('Terms and Conditions'); ?>: <span><?php echo $deliveryTermsLabel ?></span></p><br>
+                        <p><?php echo $this->__('Customer transportation'); ?>: <span><?php echo $transportationLabel ?></span></p>
+                    </div>
+                    <div class="termsNTransport">
+                        <p><?php echo $this->__('Terms of payment'); ?>: <span><?php echo $languageCodeLabel ?></span></p>
+                    </div>
+
+                    <div class="totalWrap">
+                        <span><?php echo $this->__('Sum') ?>:&nbsp; <?php echo Mage::helper('core')->formatPrice($grandTotal, true); ?></span>
+                    </div>
+                </div>
+                <div class="nextButton">
+                    <a href="javascript:void(0)" class="button" onclick="showOrderItems()">
+                        <span class="buttonText"><?php echo $this->__('Next') ?></span><span class="glyphicon glyphicon-menu-right"></span>
+                    </a>
+                </div>
+            </footer>
+        </div>
+        <div class="popInnerOverlay">
+            <div class="popInnerLoader"></div>
+        </div>
+    </div>
+</div>
+</div>
